@@ -1,8 +1,9 @@
-use std::collections::HashMap;
 use oauth::QueryParams;
+use std::collections::HashMap;
 
 pub use error::TwitchError;
 pub use model::*;
+use tokio::sync::Mutex;
 
 pub mod error;
 pub mod model;
@@ -14,7 +15,7 @@ pub type Error = Box<dyn std::error::Error + Send + Sync>;
 pub struct TwitchClient {
     oauth: oauth::OauthClient,
     identity: oauth::Identity,
-    games_cache: HashMap<String, Game>,
+    games_cache: Mutex<HashMap<String, Game>>,
 }
 
 impl TwitchClient {
@@ -23,8 +24,36 @@ impl TwitchClient {
         Ok(Self {
             oauth,
             identity,
-            games_cache: HashMap::new(),
+            games_cache: Mutex::new(HashMap::new()),
         })
+    }
+
+    pub async fn get_game_by_id(&self, id: String) -> Result<Game, Error> {
+        {
+            let cache = self.games_cache.lock().await;
+            if let Some(game) = cache.get(&id) {
+                return Ok(game.clone());
+            }
+        }
+
+        let key = id.to_string();
+        let query = build_query!("id" => id);
+        let game: Game = self
+            .oauth
+            .get(&self.identity, "games", query, move |b| {
+                let mut body: TwitchData<Game> = serde_json::from_slice(&b)?;
+                match body.data.pop() {
+                    Some(game) => Ok(game),
+                    None => Err(Box::new(TwitchError::NotFound("Game".to_string(), id))),
+                }
+            })
+            .await?;
+
+        {
+            let mut cache = self.games_cache.lock().await;
+            cache.insert(key, game.clone());
+        }
+        Ok(game)
     }
 
     /// Gets the user id for the given user login
@@ -34,10 +63,13 @@ impl TwitchClient {
         );
         self.oauth
             .get(&self.identity, "users", query, move |s| {
-                let body: TwitchData<User> = serde_json::from_slice(&s)?;
-                match body.data.first() {
-                    Some(user) => Ok(user.to_owned()),
-                    None => Err(Box::new(TwitchError::UserNotFound(user_login.to_string()))),
+                let mut body: TwitchData<User> = serde_json::from_slice(&s)?;
+                match body.data.pop() {
+                    Some(user) => Ok(user),
+                    None => Err(Box::new(TwitchError::NotFound(
+                        "User".to_string(),
+                        user_login.to_string(),
+                    ))),
                 }
             })
             .await

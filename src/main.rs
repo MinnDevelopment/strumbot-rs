@@ -39,6 +39,11 @@ async fn main() -> Async {
         println!("{result:?}")
     }
 
+    let game = client.get_game_by_id("512724".to_string()).await?;
+    println!("First {game:?}");
+    let game = client.get_game_by_id("512724".to_string()).await?;
+    println!("Cached {game:?}");
+
     Ok(())
 }
 

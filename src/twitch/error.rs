@@ -5,13 +5,13 @@ use std::{
 
 #[derive(Debug)]
 pub enum TwitchError {
-    UserNotFound(String),
+    NotFound(String, String),
 }
 
 impl Display for TwitchError {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
-            TwitchError::UserNotFound(user) => write!(f, "User {} not found", user),
+            TwitchError::NotFound(kind, query) => write!(f, "{kind} not found for query {query}"),
         }
     }
 }
