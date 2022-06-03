@@ -31,7 +31,7 @@ async fn main() -> Async {
 
     for login in &config.twitch.user_login {
         println!("Fetching {login}");
-        let result = client.get_user_from_login(login).await?;
+        let result = client.get_user_from_login(login.clone()).await?;
 
         println!("{result:?}")
     }
@@ -40,6 +40,13 @@ async fn main() -> Async {
     println!("First {game:?}");
     let game = client.get_game_by_id("512724".to_string()).await?;
     println!("Cached {game:?}");
+
+    let streams = client
+        .get_streams_by_login(&config.twitch.user_login)
+        .await?;
+    for stream in streams {
+        println!("{stream:?}");
+    }
 
     Ok(())
 }

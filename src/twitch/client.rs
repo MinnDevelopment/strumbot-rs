@@ -2,7 +2,7 @@ use lru::LruCache;
 use oauth::QueryParams;
 use tokio::sync::Mutex;
 
-use super::oauth;
+use super::{oauth, Stream};
 use super::{Error, Game, TwitchData, TwitchError, User};
 
 pub struct TwitchClient {
@@ -50,7 +50,8 @@ impl TwitchClient {
     }
 
     /// Gets the user id for the given user login
-    pub async fn get_user_from_login(&self, user_login: &String) -> Result<User, Error> {
+    pub async fn get_user_from_login(&self, user_login: String) -> Result<User, Error> {
+        let name = user_login.to_string();
         let query = build_query!(
             "login" => user_login
         );
@@ -59,11 +60,24 @@ impl TwitchClient {
                 let mut body: TwitchData<User> = serde_json::from_slice(&s)?;
                 match body.data.pop() {
                     Some(user) => Ok(user),
-                    None => Err(Box::new(TwitchError::NotFound(
-                        "User".to_string(),
-                        user_login.to_string(),
-                    ))),
+                    None => Err(Box::new(TwitchError::NotFound("User".to_string(), name))),
                 }
+            })
+            .await
+    }
+
+    pub async fn get_streams_by_login(&self, user_login: &[String]) -> Result<Vec<Stream>, Error> {
+        let params = user_login
+            .iter()
+            .fold(QueryParams::builder(), |query, login| {
+                query.param("user_login", login.to_string())
+            })
+            .build();
+
+        self.oauth
+            .get(&self.identity, "streams", params, |b| {
+                let body: TwitchData<Stream> = serde_json::from_slice(&b)?;
+                Ok(body.data)
             })
             .await
     }

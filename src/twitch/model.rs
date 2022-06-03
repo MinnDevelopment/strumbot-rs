@@ -113,13 +113,23 @@ pub struct Stream {
     pub game_id: String,
     pub title: String,
     #[serde(rename = "type")]
-    pub kind: StreamType, // todo: type enum
+    pub kind: StreamType,
     pub language: String,
     pub thumbnail_url: CDNUrl,
     pub user_id: String,
     pub user_login: String,
     pub user_name: String,
     pub started_at: Timestamp,
+}
+
+impl Stream {
+    async fn get_game(&self, client: &super::TwitchClient) -> Result<Game, super::Error> {
+        client.get_game_by_id(self.game_id.clone()).await
+    }
+
+    async fn get_user(&self, client: &super::TwitchClient) -> Result<User, super::Error> {
+        client.get_user_from_login(self.user_login.clone()).await
+    }
 }
 
 #[derive(Deserialize, Clone, Debug)]
