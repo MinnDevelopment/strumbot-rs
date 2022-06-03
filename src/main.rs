@@ -8,10 +8,7 @@ use twilight_http::{
 use twilight_model::id::{marker::WebhookMarker, Id};
 use twitch::TwitchClient;
 
-use crate::twitch::{
-    oauth::{ClientParams, OauthClient, QueryParams},
-    TwitchData,
-};
+use crate::twitch::oauth::{ClientParams, OauthClient};
 
 mod config;
 mod twitch;
