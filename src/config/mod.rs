@@ -8,6 +8,10 @@ const fn default_grace_period() -> u8 {
     2
 }
 
+const fn default_true() -> bool {
+    true
+}
+
 #[derive(Deserialize)]
 pub struct TwitchConfig {
     pub client_id: String,
@@ -19,9 +23,44 @@ pub struct TwitchConfig {
     pub offline_grace_period: u8,
 }
 
+#[derive(Deserialize, Default)]
+pub struct RoleNameConfig {
+    #[serde(default)]
+    pub live: String,
+    #[serde(default)]
+    pub vod: String,
+    #[serde(default)]
+    pub update: String,
+}
+
+#[derive(Deserialize)]
+pub enum EventName {
+    #[serde(rename = "live")]
+    Live,
+    #[serde(rename = "vod")]
+    Vod,
+    #[serde(rename = "update")]
+    Update,
+}
+
+#[derive(Deserialize)]
+pub struct DiscordConfig {
+    pub token: String,
+    #[serde(rename = "server_id")]
+    pub guild_id: Option<String>,
+    pub stream_notifications: String,
+    // pub logging: Option<String>,
+    #[serde(default = "default_true")]
+    pub show_notify_hints: bool,
+    #[serde(default)]
+    pub role_name: RoleNameConfig,
+    pub enabled_events: Vec<EventName>,
+}
+
 #[derive(Deserialize)]
 pub struct Config {
     pub twitch: TwitchConfig,
+    pub discord: DiscordConfig,
 }
 
 #[cfg(test)]
