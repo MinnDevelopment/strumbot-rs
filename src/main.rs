@@ -41,7 +41,9 @@ async fn main() -> Async {
         .await?;
     for stream in streams {
         println!("{:?} top clips", stream.title);
-        let clips = client.get_top_clips(stream.user_id.clone(), &stream.started_at, 5).await?;
+        let clips = client
+            .get_top_clips(stream.user_id.clone(), &stream.started_at, 5)
+            .await?;
         for clip in clips {
             println!("{} - {}", clip.title, clip.url)
         }

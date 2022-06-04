@@ -1,4 +1,4 @@
-use eos::fmt::{FormatSpec, format_spec};
+use eos::fmt::{format_spec, FormatSpec};
 use lru::LruCache;
 use oauth::QueryParams;
 use std::sync::Mutex;
@@ -123,7 +123,12 @@ impl TwitchClient {
             .await
     }
 
-    pub async fn get_top_clips(&self, user_id: String, started_at: &DateTime, num: u8) -> Result<Vec<Clip>, Error> {
+    pub async fn get_top_clips(
+        &self,
+        user_id: String,
+        started_at: &DateTime,
+        num: u8,
+    ) -> Result<Vec<Clip>, Error> {
         let query = build_query!(
             "first" => "100", // twitch filters *after* limiting the number. we need to just get max and then filter
             "broadcaster_id" => user_id,
