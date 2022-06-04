@@ -1,9 +1,9 @@
 use lru::LruCache;
 use oauth::QueryParams;
-use tokio::sync::Mutex;
+use std::sync::Mutex;
 
-use super::{oauth, Stream};
-use super::{Error, Game, TwitchData, TwitchError, User};
+use super::{oauth, Error, Game, Stream, TwitchData, TwitchError, User};
+use crate::util::locked;
 
 pub struct TwitchClient {
     oauth: oauth::OauthClient,
@@ -22,11 +22,9 @@ impl TwitchClient {
     }
 
     pub async fn get_game_by_id(&self, id: String) -> Result<Game, Error> {
-        {
-            let mut cache = self.games_cache.lock().await;
-            if let Some(game) = cache.get(&id) {
-                return Ok(game.clone());
-            }
+        let cached_game = locked(&self.games_cache, |cache| cache.get(&id).cloned());
+        if let Some(game) = cached_game {
+            return Ok(game);
         }
 
         let key = id.to_string();
@@ -42,11 +40,10 @@ impl TwitchClient {
             })
             .await?;
 
-        {
-            let mut cache = self.games_cache.lock().await;
+        Ok(locked(&self.games_cache, |cache| {
             cache.push(key, game.clone());
-        }
-        Ok(game)
+            game
+        }))
     }
 
     /// Gets the user id for the given user login

@@ -9,11 +9,11 @@ use twilight_model::id::{marker::WebhookMarker, Id};
 use twitch::TwitchClient;
 
 use crate::twitch::oauth::{ClientParams, OauthClient};
+use config::Config;
 
 mod config;
 mod twitch;
-
-use config::Config;
+mod util;
 
 type Async = Result<(), Box<dyn Error + Send + Sync>>;
 
