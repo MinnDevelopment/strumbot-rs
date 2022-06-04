@@ -1,6 +1,5 @@
 use std::fmt::{Display, Formatter};
 
-use bytes::Bytes;
 use iso8601_timestamp::Timestamp;
 use serde::Deserialize;
 

@@ -1,17 +1,12 @@
-use std::{error::Error, fmt::Display, str::FromStr};
-
-use regex::Regex;
-use twilight_http::{
-    request::channel::webhook::{DeleteWebhook, ExecuteWebhook},
-    Client,
-};
-use twilight_model::id::{marker::WebhookMarker, Id};
-use twitch::TwitchClient;
-
 use crate::twitch::oauth::{ClientParams, OauthClient};
 use config::Config;
+use std::error::Error;
+use twitch::TwitchClient;
 
 mod config;
+#[allow(dead_code)]
+mod discord;
+#[allow(dead_code)]
 mod twitch;
 mod util;
 
@@ -49,71 +44,4 @@ async fn main() -> Async {
     }
 
     Ok(())
-}
-
-struct WebhookClient {
-    client: Client,
-    params: WebhookParams,
-}
-
-impl WebhookClient {
-    fn new(client: Client, params: WebhookParams) -> Self {
-        Self { client, params }
-    }
-
-    fn send_message(&self) -> ExecuteWebhook {
-        let params = &self.params;
-        self.client.execute_webhook(params.id, &params.token)
-    }
-
-    #[allow(dead_code)]
-    fn delete(&self) -> DeleteWebhook {
-        let params = &self.params;
-        self.client.delete_webhook(params.id).token(&params.token)
-    }
-}
-
-struct WebhookParams {
-    id: Id<WebhookMarker>,
-    token: String,
-}
-
-#[derive(Debug)]
-struct ParseError {
-    regex: Regex,
-    value: String,
-}
-
-impl Display for ParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Failed to parse string using regex.\nRegex: {}\nProvided: {}",
-            self.regex, self.value
-        )
-    }
-}
-
-impl Error for ParseError {}
-
-impl FromStr for WebhookParams {
-    type Err = Box<dyn Error + Send + Sync>;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let re = Regex::new("^https://(?:\\w*).discord.com/api/webhooks/(\\d+)/(\\w+)$").unwrap();
-        if let Some(captures) = re.captures(s) {
-            // We can use unwrap here because the regex is well defined and constant
-            let id = captures.get(1).unwrap().as_str().parse::<u64>()?;
-            let token = captures.get(2).unwrap().as_str().to_string();
-            Ok(WebhookParams {
-                id: Id::new(id),
-                token,
-            })
-        } else {
-            Err(Box::new(ParseError {
-                regex: re,
-                value: s.into(),
-            }))
-        }
-    }
 }
