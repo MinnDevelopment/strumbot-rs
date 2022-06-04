@@ -1,6 +1,5 @@
 use std::fmt::{Display, Formatter};
 
-use iso8601_timestamp::Timestamp;
 use serde::Deserialize;
 
 #[derive(Deserialize, Clone, Debug)]
@@ -41,7 +40,7 @@ pub struct User {
     // pub view_count: u64,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum VideoType {
     Archive,
     Upload,
@@ -81,10 +80,22 @@ pub struct Video {
     pub id: String,
     pub url: String,
     pub title: String,
-    pub thumbnail: CDNUrl,
-    pub views: i32,
+    pub thumbnail_url: CDNUrl,
+    pub view_count: i32,
     #[serde(rename = "type")]
     pub kind: VideoType,
+    pub created_at: eos::DateTime,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub struct Clip {
+    pub id: String,
+    pub video_id: String,
+    pub url: String,
+    pub title: String,
+    pub thumbnail_url: CDNUrl,
+    pub view_count: i32,
+    pub created_at: eos::DateTime,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -118,7 +129,7 @@ pub struct Stream {
     pub user_id: String,
     pub user_login: String,
     pub user_name: String,
-    pub started_at: Timestamp,
+    pub started_at: eos::DateTime,
 }
 
 impl Stream {

@@ -1,8 +1,9 @@
+use eos::fmt::{FormatSpec, format_spec};
 use lru::LruCache;
 use oauth::QueryParams;
 use std::sync::Mutex;
 
-use super::{oauth, Error, Game, Stream, TwitchData, TwitchError, User};
+use super::{oauth, Clip, Error, Game, Stream, TwitchData, TwitchError, User, Video, VideoType};
 use crate::util::locked;
 
 pub struct TwitchClient {
@@ -75,6 +76,65 @@ impl TwitchClient {
             .get(&self.identity, "streams", params, |b| {
                 let body: TwitchData<Stream> = serde_json::from_slice(&b)?;
                 Ok(body.data)
+            })
+            .await
+    }
+
+    pub async fn get_video_by_id(&self, id: String) -> Result<Video, Error> {
+        let query = build_query!("id" => id);
+        self.oauth
+            .get(&self.identity, "videos", query, move |b| {
+                let mut body: TwitchData<Video> = serde_json::from_slice(&b)?;
+                match body.data.pop() {
+                    Some(video) => Ok(video),
+                    None => Err(Box::new(TwitchError::NotFound("Video".to_string(), id))),
+                }
+            })
+            .await
+    }
+
+    pub async fn get_video_by_stream(&self, stream: &Stream) -> Result<Video, Error> {
+        let user_id = stream.user_id.clone();
+        let query = build_query!(
+            "type" => "archive",
+            "first" => "5",
+            "user_id" => user_id
+        );
+
+        self.oauth
+            .get(&self.identity, "videos", query, move |b| {
+                let body: TwitchData<Video> = serde_json::from_slice(&b)?;
+                let video = body
+                    .data
+                    .into_iter()
+                    .filter(|v| v.kind == VideoType::Archive) // the stream vod is an archive
+                    .find(|v| v.created_at.cmp(&stream.started_at).is_ge()); // video goes up after stream started
+                match video {
+                    Some(video) => Ok(video),
+                    None => Err(Box::new(TwitchError::NotFound(
+                        "Video".to_string(),
+                        user_id,
+                    ))),
+                }
+            })
+            .await
+    }
+
+    const RFC3339: [FormatSpec<'static>; 12] = format_spec!("%Y-%m-%dT%H:%M:%SZ");
+
+    pub async fn get_top_clips(&self, user_id: String, started_at: &eos::DateTime, num: u8) -> Result<Vec<Clip>, Error> {
+        let query = build_query!(
+            "first" => "100", // twitch filters *after* limiting the number. we need to just get max and then filter
+            "broadcaster_id" => user_id,
+            "started_at" => started_at.format(Self::RFC3339)
+        );
+
+        self.oauth
+            .get(&self.identity, "clips", query, move |b| {
+                let body: TwitchData<Clip> = serde_json::from_slice(&b)?;
+                let mut clips = body.data;
+                clips.truncate(num as usize);
+                Ok(clips)
             })
             .await
     }

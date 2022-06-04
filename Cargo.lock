@@ -126,6 +126,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "eos"
+version = "0.1.0"
+source = "git+https://github.com/Rapptz/eos#9814bae68f6b1d9e19c1b23f5e5a304284e2d31f"
+dependencies = [
+ "eos-format-spec-macro",
+ "libc",
+ "serde",
+]
+
+[[package]]
+name = "eos-format-spec-macro"
+version = "0.1.0"
+source = "git+https://github.com/Rapptz/eos#9814bae68f6b1d9e19c1b23f5e5a304284e2d31f"
+
+[[package]]
 name = "fastrand"
 version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -252,16 +267,6 @@ dependencies = [
  "pin-project-lite",
  "pin-utils",
  "slab",
-]
-
-[[package]]
-name = "generic-array"
-version = "0.14.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd48d33ec7f05fbfa152300fdad764757cbded343c1aa1cff2fbaf4134851803"
-dependencies = [
- "typenum",
- "version_check",
 ]
 
 [[package]]
@@ -432,17 +437,6 @@ name = "ipnet"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "879d54834c8c76457ef4293a689b2a8c59b076067ad77b15efafbb05f92a592b"
-
-[[package]]
-name = "iso8601-timestamp"
-version = "0.1.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56480a7792bfa284a4c7d1781f711de58e357dbb669c1b1a50c37c1777c9be92"
-dependencies = [
- "generic-array",
- "serde",
- "time",
-]
 
 [[package]]
 name = "itoa"
@@ -961,8 +955,8 @@ name = "strumbot"
 version = "0.1.0"
 dependencies = [
  "bytes",
+ "eos",
  "futures",
- "iso8601-timestamp",
  "lru",
  "regex",
  "reqwest",
@@ -1008,14 +1002,7 @@ checksum = "c2702e08a7a860f005826c6815dcac101b19b5eb330c27fe4a5928fec1d20ddd"
 dependencies = [
  "libc",
  "num_threads",
- "time-macros",
 ]
-
-[[package]]
-name = "time-macros"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42657b1a6f4d817cda8e7a0ace261fe0cc946cf3a80314390b22cc61ae080792"
 
 [[package]]
 name = "tinyvec"
@@ -1194,12 +1181,6 @@ checksum = "4d8ee22c7e5321064abdd9ad1c6a7f0a7502db11db018a2f72326c9314bcea41"
 dependencies = [
  "twilight-model",
 ]
-
-[[package]]
-name = "typenum"
-version = "1.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcf81ac59edc17cc8697ff311e8f5ef2d99fcbd9817b34cec66f90b6c3dfd987"
 
 [[package]]
 name = "unicode-bidi"

@@ -24,23 +24,27 @@ async fn main() -> Async {
 
     let client = TwitchClient::new(oauth).await?;
 
-    for login in &config.twitch.user_login {
-        println!("Fetching {login}");
-        let result = client.get_user_from_login(login.clone()).await?;
+    // for login in &config.twitch.user_login {
+    //     println!("Fetching {login}");
+    //     let result = client.get_user_from_login(login.clone()).await?;
 
-        println!("{result:?}")
-    }
+    //     println!("{result:?}")
+    // }
 
-    let game = client.get_game_by_id("512724".to_string()).await?;
-    println!("First {game:?}");
-    let game = client.get_game_by_id("512724".to_string()).await?;
-    println!("Cached {game:?}");
+    // let game = client.get_game_by_id("512724".to_string()).await?;
+    // println!("First {game:?}");
+    // let game = client.get_game_by_id("512724".to_string()).await?;
+    // println!("Cached {game:?}");
 
     let streams = client
         .get_streams_by_login(&config.twitch.user_login)
         .await?;
     for stream in streams {
-        println!("{stream:?}");
+        println!("{:?} top clips", stream.title);
+        let clips = client.get_top_clips(stream.user_id.clone(), &stream.started_at, 5).await?;
+        for clip in clips {
+            println!("{} - {}", clip.title, clip.url)
+        }
     }
 
     Ok(())
