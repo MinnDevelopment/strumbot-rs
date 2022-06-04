@@ -6,6 +6,9 @@ use std::sync::Mutex;
 use super::{oauth, Clip, Error, Game, Stream, TwitchData, TwitchError, User, Video, VideoType};
 use crate::util::locked;
 
+type DateTime = eos::DateTime<eos::Utc>;
+
+const RFC3339: [FormatSpec<'static>; 12] = format_spec!("%Y-%m-%dT%H:%M:%SZ");
 pub struct TwitchClient {
     oauth: oauth::OauthClient,
     identity: oauth::Identity,
@@ -120,13 +123,11 @@ impl TwitchClient {
             .await
     }
 
-    const RFC3339: [FormatSpec<'static>; 12] = format_spec!("%Y-%m-%dT%H:%M:%SZ");
-
-    pub async fn get_top_clips(&self, user_id: String, started_at: &eos::DateTime, num: u8) -> Result<Vec<Clip>, Error> {
+    pub async fn get_top_clips(&self, user_id: String, started_at: &DateTime, num: u8) -> Result<Vec<Clip>, Error> {
         let query = build_query!(
             "first" => "100", // twitch filters *after* limiting the number. we need to just get max and then filter
             "broadcaster_id" => user_id,
-            "started_at" => started_at.format(Self::RFC3339)
+            "started_at" => started_at.format(RFC3339)
         );
 
         self.oauth
