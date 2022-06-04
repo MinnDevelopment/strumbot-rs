@@ -9,6 +9,7 @@ use crate::util::locked;
 type DateTime = eos::DateTime<eos::Utc>;
 
 const RFC3339: [FormatSpec<'static>; 12] = format_spec!("%Y-%m-%dT%H:%M:%SZ");
+
 pub struct TwitchClient {
     oauth: oauth::OauthClient,
     identity: oauth::Identity,
@@ -111,7 +112,7 @@ impl TwitchClient {
                     .data
                     .into_iter()
                     .filter(|v| v.kind == VideoType::Archive) // the stream vod is an archive
-                    .find(|v| v.created_at.cmp(&stream.started_at).is_ge()); // video goes up after stream started
+                    .find(|v| v.created_at >= stream.started_at); // video goes up after stream started
                 match video {
                     Some(video) => Ok(video),
                     None => Err(Box::new(TwitchError::NotFound(

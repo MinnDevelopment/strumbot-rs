@@ -133,12 +133,26 @@ pub struct Stream {
 }
 
 impl Stream {
-    async fn get_game(&self, client: &super::TwitchClient) -> Result<Game, super::Error> {
+    pub async fn get_game(&self, client: &super::TwitchClient) -> Result<Game, super::Error> {
         client.get_game_by_id(self.game_id.clone()).await
     }
 
-    async fn get_user(&self, client: &super::TwitchClient) -> Result<User, super::Error> {
+    pub async fn get_user(&self, client: &super::TwitchClient) -> Result<User, super::Error> {
         client.get_user_from_login(self.user_login.clone()).await
+    }
+
+    pub async fn get_top_clips(
+        &self,
+        client: &super::TwitchClient,
+        num: u8,
+    ) -> Result<Vec<Clip>, super::Error> {
+        client
+            .get_top_clips(self.user_id.clone(), &self.started_at, num)
+            .await
+    }
+
+    pub async fn get_video(&self, client: &super::TwitchClient) -> Result<Video, super::Error> {
+        client.get_video_by_stream(self).await
     }
 }
 
