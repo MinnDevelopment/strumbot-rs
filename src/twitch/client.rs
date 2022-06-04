@@ -156,7 +156,7 @@ impl TwitchClient {
         }
 
         let full_url = H.replace(&W.replace(url, "1920"), "1080").to_string();
-        
+
         let request = self.oauth.http.get(full_url).build()?;
         let response = self.oauth.http.execute(request).await?;
 

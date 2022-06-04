@@ -1,8 +1,11 @@
-use crate::{twitch::oauth::{ClientParams, OauthClient}, discord::{WebhookClient, WebhookParams}};
+use crate::{
+    discord::{WebhookClient, WebhookParams},
+    twitch::oauth::{ClientParams, OauthClient},
+};
 use config::Config;
+use std::error::Error;
 use twilight_http::Client;
 use twilight_model::http::attachment::Attachment;
-use std::error::Error;
 use twitch::TwitchClient;
 
 mod config;
@@ -58,9 +61,11 @@ async fn main() -> Async {
         let image = client.get_thumbnail(thumbnail).await?;
         let attach = Attachment::from_bytes("thumbnail.jpg".into(), image, 0);
 
-        webhook.send_message()
+        webhook
+            .send_message()
             .attachments(&[attach])?
-            .exec().await?;
+            .exec()
+            .await?;
     }
 
     Ok(())

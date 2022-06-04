@@ -1,5 +1,5 @@
-use regex::Regex;
 use lazy_static::lazy_static;
+use regex::Regex;
 use std::{error::Error, fmt::Display, str::FromStr};
 use twilight_http::{
     request::channel::webhook::{DeleteWebhook, ExecuteWebhook},
@@ -56,7 +56,8 @@ impl FromStr for WebhookParams {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         lazy_static! {
-            static ref REGEX: Regex = Regex::new(r"^https?://discord.com/api/webhooks/(\d+)/(\w+)$").unwrap();
+            static ref REGEX: Regex =
+                Regex::new(r"^https?://discord.com/api/webhooks/(\d+)/(\w+)$").unwrap();
         }
 
         if let Some(captures) = REGEX.captures(s) {
