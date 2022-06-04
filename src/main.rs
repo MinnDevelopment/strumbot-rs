@@ -1,5 +1,7 @@
-use crate::twitch::oauth::{ClientParams, OauthClient};
+use crate::{twitch::oauth::{ClientParams, OauthClient}, discord::{WebhookClient, WebhookParams}};
 use config::Config;
+use twilight_http::Client;
+use twilight_model::http::attachment::Attachment;
 use std::error::Error;
 use twitch::TwitchClient;
 
@@ -39,6 +41,10 @@ async fn main() -> Async {
     let streams = client
         .get_streams_by_login(&config.twitch.user_login)
         .await?;
+
+    let webhook_params: WebhookParams = config.discord.stream_notifications.parse()?;
+    let webhook = WebhookClient::new(Client::new("".to_string()), webhook_params);
+
     for stream in streams {
         println!("{:?} top clips", stream.title);
         let clips = stream.get_top_clips(&client, 5).await?;
@@ -47,6 +53,14 @@ async fn main() -> Async {
         }
 
         println!("\nAnd Video: {}", stream.get_video(&client).await?.url);
+
+        let thumbnail = &stream.thumbnail_url;
+        let image = client.get_thumbnail(thumbnail).await?;
+        let attach = Attachment::from_bytes("thumbnail.jpg".into(), image, 0);
+
+        webhook.send_message()
+            .attachments(&[attach])?
+            .exec().await?;
     }
 
     Ok(())

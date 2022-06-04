@@ -1,6 +1,9 @@
+use lazy_static::lazy_static;
+
 use eos::fmt::{format_spec, FormatSpec};
 use lru::LruCache;
 use oauth::QueryParams;
+use regex::Regex;
 use std::sync::Mutex;
 
 use super::{oauth, Clip, Error, Game, Stream, TwitchData, TwitchError, User, Video, VideoType};
@@ -144,5 +147,19 @@ impl TwitchClient {
                 Ok(clips)
             })
             .await
+    }
+
+    pub async fn get_thumbnail(&self, url: &str) -> Result<Vec<u8>, Error> {
+        lazy_static! {
+            static ref W: Regex = Regex::new(r"%?\{width\}").unwrap();
+            static ref H: Regex = Regex::new(r"%?\{height\}").unwrap();
+        }
+
+        let full_url = H.replace(&W.replace(url, "1920"), "1080").to_string();
+        
+        let request = self.oauth.http.get(full_url).build()?;
+        let response = self.oauth.http.execute(request).await?;
+
+        Ok(response.bytes().await?.as_ref().to_vec())
     }
 }

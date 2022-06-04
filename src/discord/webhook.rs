@@ -1,4 +1,5 @@
 use regex::Regex;
+use lazy_static::lazy_static;
 use std::{error::Error, fmt::Display, str::FromStr};
 use twilight_http::{
     request::channel::webhook::{DeleteWebhook, ExecuteWebhook},
@@ -34,7 +35,7 @@ pub struct WebhookParams {
 
 #[derive(Debug)]
 pub struct ParseError {
-    regex: Regex,
+    regex: &'static Regex,
     value: String,
 }
 
@@ -54,8 +55,11 @@ impl FromStr for WebhookParams {
     type Err = Box<dyn Error + Send + Sync>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let re = Regex::new("^https://(?:\\w*).discord.com/api/webhooks/(\\d+)/(\\w+)$").unwrap();
-        if let Some(captures) = re.captures(s) {
+        lazy_static! {
+            static ref REGEX: Regex = Regex::new(r"^https?://discord.com/api/webhooks/(\d+)/(\w+)$").unwrap();
+        }
+
+        if let Some(captures) = REGEX.captures(s) {
             // We can use unwrap here because the regex is well defined and constant
             let id = captures.get(1).unwrap().as_str().parse::<u64>()?;
             let token = captures.get(2).unwrap().as_str().to_string();
@@ -65,7 +69,7 @@ impl FromStr for WebhookParams {
             })
         } else {
             Err(Box::new(ParseError {
-                regex: re,
+                regex: &REGEX,
                 value: s.into(),
             }))
         }

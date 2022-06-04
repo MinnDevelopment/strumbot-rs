@@ -9,7 +9,6 @@ edition = "2021"
 twilight-http-ratelimiting = "0.11.0"
 twilight-http = "0.11.0"
 twilight-model = "0.11.0"
-regex = "1"
 futures = "0.3.21"
 serde = "1.0"
 serde_json = "1.0"
@@ -17,6 +16,11 @@ url = "2.2.2"
 bytes = "1.0"
 # iso8601-timestamp = "0.1.10"
 lru = "0.7.6"
+lazy_static = "1.4"
+
+[dependencies.regex]
+version = "1.5"
+# features = ["pattern"]
 
 [dependencies.tokio]
 version = "1.0"

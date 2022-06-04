@@ -1,15 +1,4 @@
-use std::fmt::{Display, Formatter};
-
 use serde::Deserialize;
-
-#[derive(Deserialize, Clone, Debug)]
-pub struct CDNUrl(String);
-
-impl Display for CDNUrl {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct Game {
@@ -80,7 +69,7 @@ pub struct Video {
     pub id: String,
     pub url: String,
     pub title: String,
-    pub thumbnail_url: CDNUrl,
+    pub thumbnail_url: String,
     pub view_count: i32,
     #[serde(rename = "type")]
     pub kind: VideoType,
@@ -93,7 +82,7 @@ pub struct Clip {
     pub video_id: String,
     pub url: String,
     pub title: String,
-    pub thumbnail_url: CDNUrl,
+    pub thumbnail_url: String,
     pub view_count: i32,
     pub created_at: eos::DateTime,
 }
@@ -125,7 +114,7 @@ pub struct Stream {
     #[serde(rename = "type")]
     pub kind: StreamType,
     pub language: String,
-    pub thumbnail_url: CDNUrl,
+    pub thumbnail_url: String,
     pub user_id: String,
     pub user_login: String,
     pub user_name: String,
