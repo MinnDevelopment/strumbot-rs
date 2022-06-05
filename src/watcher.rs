@@ -10,7 +10,6 @@ use crate::{
     config::{Config, EventName},
     discord::WebhookClient,
     twitch::{Error, Game, Stream, TwitchClient},
-    util::to_unix,
 };
 
 const fn split_duration(dur: &Duration) -> (u8, u8, u8) {
@@ -100,47 +99,21 @@ impl StreamWatcher {
         webhook: &WebhookClient,
         stream: Stream,
     ) -> Result<(), Error> {
-        let game = stream
-            .get_game(client)
-            .await
-            .unwrap_or_else(|_| Game::empty());
-        self.segments
-            .push(StreamSegment::from(client, &stream, &game).await?);
-
-        let mention = self
-            .config
-            .get_role("live")
-            .map(|id| format!("<@&{id}>"))
-            .unwrap_or_else(|| "".to_string());
+        let game = self.add_segment(client, &stream).await?;
+        let mention = self.get_mention("live");
         let user_name = &stream.user_name;
         info!("User {} started streaming {}", user_name, game.name);
 
-        let enabled = &self.config.discord.enabled_events;
-        if !enabled.contains(&EventName::Live) {
+        if self.is_skipped(EventName::Live) {
             return Ok(());
         }
 
-        let url = format!("https://twitch.tv/{user_name}");
-        let thumbnail = stream.get_thumbnail(client).await;
-        let mut embed = EmbedBuilder::new()
-            .author(EmbedAuthorBuilder::new(stream.title.clone()).build())
-            .color(0x6441A4)
-            .title(&url)
-            .url(&url);
-
-        if !game.name.is_empty() {
-            embed = embed.field(EmbedFieldBuilder::new("Playing", &game.name).inline());
-        }
-
-        embed = embed.field(
-            EmbedFieldBuilder::new("Started", format!("<t:{}:F>", to_unix(&stream.started_at)))
-                .inline(),
-        );
-
+        let mut embed = self.create_embed(&stream, &game);
         let content = format!("{} {} is live with **{}**!", mention, user_name, game.name);
 
         let mut request = webhook.send_message().content(&content)?;
 
+        let thumbnail = stream.get_thumbnail(client).await;
         let files; // must have same lifetime as request
         if let Some(thumbnail) = thumbnail {
             let filename = "thumbnail.png".to_string();
@@ -159,6 +132,43 @@ impl StreamWatcher {
         webhook: &WebhookClient,
         stream: Stream,
     ) -> Result<(), Error> {
+        let old_game = match self.segments.last() {
+            Some(seg) if seg.game.id == stream.game_id => return Ok(()),
+            Some(seg) => seg.game.clone(), // have to clone so the borrow isn't an issue later
+            None => {
+                panic!("Impossible situation encountered. Stream game update without being live?")
+            }
+        };
+
+        let game = self.add_segment(client, &stream).await?;
+        info!(
+            "User {} updated game. {} -> {}",
+            stream.user_name, old_game.name, game.name
+        );
+
+        if self.is_skipped(EventName::Update) {
+            return Ok(());
+        }
+
+        let mention = self.get_mention("update");
+        let mut embed = self.create_embed(&stream, &game);
+        let content = format!(
+            "{} {} switched game to **{}**!",
+            mention, stream.user_name, game.name
+        );
+
+        let mut request = webhook.send_message().content(&content)?;
+
+        let thumbnail = stream.get_thumbnail(client).await;
+        let files; // must have same lifetime as request
+        if let Some(thumbnail) = thumbnail {
+            let filename = "thumbnail.png".to_string();
+            embed = embed.image(ImageSource::attachment(&filename)?);
+            files = [Attachment::from_bytes(filename, thumbnail, 0)];
+            request = request.attachments(&files)?;
+        }
+
+        request.embeds(&[embed.build()])?.exec().await?;
         Ok(())
     }
 
@@ -168,5 +178,51 @@ impl StreamWatcher {
         webhook: &WebhookClient,
     ) -> Result<(), Error> {
         Ok(())
+    }
+
+    #[inline]
+    async fn add_segment(&mut self, client: &TwitchClient, stream: &Stream) -> Result<Game, Error> {
+        let game = stream
+            .get_game(client)
+            .await
+            .unwrap_or_else(|_| Game::empty());
+        self.segments
+            .push(StreamSegment::from(client, stream, &game).await?);
+        Ok(game)
+    }
+
+    #[inline]
+    fn get_mention(&self, event: &str) -> String {
+        self.config
+            .get_role(event)
+            .map(|id| format!("<@&{id}>"))
+            .unwrap_or_else(|| "".to_string())
+    }
+
+    #[inline]
+    fn is_skipped(&self, event: EventName) -> bool {
+        !self.config.discord.enabled_events.contains(&event)
+    }
+
+    #[inline]
+    fn create_embed(&self, stream: &Stream, game: &Game) -> EmbedBuilder {
+        let url = format!("https://twitch.tv/{}", stream.user_name);
+        let mut embed = EmbedBuilder::new()
+            .author(EmbedAuthorBuilder::new(stream.title.clone()).build())
+            .color(0x6441A4)
+            .title(&url)
+            .url(&url);
+
+        if !game.id.is_empty() {
+            embed = embed.field(EmbedFieldBuilder::new("Playing", &game.name).inline());
+        }
+
+        embed.field(
+            EmbedFieldBuilder::new(
+                "Started",
+                format!("<t:{}:F>", stream.started_at.timestamp().as_seconds()),
+            )
+            .inline(),
+        )
     }
 }

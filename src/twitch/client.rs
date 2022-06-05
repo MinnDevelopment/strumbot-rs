@@ -1,6 +1,9 @@
 use lazy_static::lazy_static;
 
-use eos::fmt::{format_spec, FormatSpec};
+use eos::{
+    fmt::{format_spec, FormatSpec},
+    Time,
+};
 use log::info;
 use lru::LruCache;
 use oauth::QueryParams;
@@ -178,7 +181,8 @@ impl TwitchClient {
             static ref H: Regex = Regex::new(r"%?\{height\}").unwrap();
         }
 
-        let full_url = H.replace(&W.replace(url, "1920"), "1080").to_string();
+        let full_url = H.replace(&W.replace(url, "1920"), "1080").to_string()
+            + format!("?t={}", DateTime::utc_now().timestamp().as_seconds()).as_str();
 
         let request = self.oauth.http.get(full_url).build()?;
         let response = self.oauth.http.execute(request).await?;
