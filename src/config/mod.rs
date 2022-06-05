@@ -107,7 +107,8 @@ impl Config {
             }
         };
 
-        self.init_roles_from_guild(client, guild).await
+        self.init_roles_from_guild(client, guild).await;
+        Ok(())
     }
 
     async fn get_guild(client: &Client, id: Id<GuildMarker>) -> Result<Guild, Error> {
@@ -117,7 +118,7 @@ impl Config {
         }
     }
 
-    async fn init_roles_from_guild(&mut self, client: &Client, guild: Guild) -> Result<(), Error> {
+    async fn init_roles_from_guild(&mut self, client: &Client, guild: Guild) {
         let role_name = &self.discord.role_name;
         let mut names = HashMap::with_capacity(3);
         names.insert(role_name.live.to_string().to_lowercase(), "live");
@@ -129,7 +130,10 @@ impl Config {
             if let Some(event) = names.get(&role.name.to_lowercase()) {
                 let owned = event.to_string();
                 not_found.remove(&owned);
-                info!("Found notification role for {} event: {} (id={})", event, role.name, role.id);
+                info!(
+                    "Found notification role for {} event: {} (id={})",
+                    event, role.name, role.id
+                );
                 self.role_map.insert(owned, role.id.to_string());
             }
         }
@@ -153,10 +157,9 @@ impl Config {
                 error!("Could not create roles due to error: {:?}", err);
                 info!("Make sure the bot has permissions to manage roles in your server. \
                        Otherwise, try creating the roles manually and restarting the bot. Missing: {:?}", name);
-                continue;
+                break;
             }
         }
-        Ok(())
     }
 }
 
