@@ -3,13 +3,13 @@ use crate::{
     twitch::oauth::{ClientParams, OauthClient},
 };
 use config::Config;
+use log::info;
 use std::{
     collections::{HashMap, HashSet},
     error::Error,
     time::Duration,
 };
 use twilight_http::Client;
-use twilight_model::http::attachment::Attachment;
 use twitch::TwitchClient;
 use watcher::{StreamUpdate, StreamWatcher};
 
@@ -21,12 +21,36 @@ mod twitch;
 mod util;
 mod watcher;
 
-type Async = Result<(), Box<dyn Error + Send + Sync>>;
+pub type AsyncError = Box<dyn Error + Send + Sync>;
+type Async = Result<(), AsyncError>;
 
 #[tokio::main]
 async fn main() -> Async {
+    simple_logger::init_with_level(log::Level::Info).unwrap();
+
     let config: String = tokio::fs::read_to_string("config.json").await?;
-    let config: Config = serde_json::from_str(&config)?;
+    let mut config: Config = serde_json::from_str(&config)?;
+
+    // Discord setup
+
+    info!("Connecting to Discord...");
+
+    let discord_client = Client::new(config.discord.token.to_string());
+    config.init_roles(&discord_client).await?;
+
+    let webhook_params: WebhookParams = config.discord.stream_notifications.parse()?;
+    let webhook = WebhookClient::new(discord_client, webhook_params);
+
+    let mut watchers: HashMap<String, StreamWatcher> =
+        HashMap::with_capacity(config.twitch.user_login.len());
+    for login in &config.twitch.user_login {
+        let watcher = StreamWatcher::new(login.clone());
+        watchers.insert(login.clone(), watcher);
+    }
+
+    // Twitch setup
+
+    info!("Connecting to Twitch...");
 
     let oauth = OauthClient::new(ClientParams {
         client_id: config.twitch.client_id,
@@ -35,15 +59,10 @@ async fn main() -> Async {
 
     let mut client = TwitchClient::new(oauth).await?;
 
-    let webhook_params: WebhookParams = config.discord.stream_notifications.parse()?;
-    let webhook = WebhookClient::new(Client::new(config.discord.token.to_string()), webhook_params);
-
-    let mut watchers: HashMap<String, StreamWatcher> =
-        HashMap::with_capacity(config.twitch.user_login.len());
-    for login in &config.twitch.user_login {
-        let watcher = StreamWatcher::new(login.clone());
-        watchers.insert(login.clone(), watcher);
-    }
+    info!(
+        "Starting stream watchers... Listening for streams from {:?}",
+        config.twitch.user_login
+    );
 
     loop {
         // 1. Fetch streams in batch

@@ -1,4 +1,23 @@
+use std::collections::{HashMap, HashSet};
+
+use errors::InitError;
+use futures::FutureExt;
+use futures::TryFutureExt;
+use log::{error, info};
+use serde::de::DeserializeOwned;
 use serde::Deserialize;
+use twilight_http::response::ResponseFuture;
+use twilight_http::Client;
+use twilight_model::guild::Role;
+use twilight_model::{
+    guild::{Guild, Permissions},
+    id::{marker::GuildMarker, Id},
+};
+
+use crate::twitch::Error;
+use crate::util::ResponseResolve;
+
+pub mod errors;
 
 const fn default_top_clips() -> u8 {
     0
@@ -61,6 +80,84 @@ pub struct DiscordConfig {
 pub struct Config {
     pub twitch: TwitchConfig,
     pub discord: DiscordConfig,
+    #[serde(default)]
+    role_map: HashMap<String, String>, // map of name -> id (for mentions)
+}
+
+impl Config {
+    pub fn get_role(&self, event: &str) -> Option<String> {
+        self.role_map.get(event).cloned()
+    }
+
+    pub async fn init_roles(&mut self, client: &Client) -> Result<(), Error> {
+        let guild = if let Some(ref id) = self.discord.guild_id {
+            Self::get_guild(client, id.parse()?).await?
+        } else {
+            let guilds = client
+                .current_user_guilds()
+                .limit(2)?
+                .exec()
+                .await?
+                .models()
+                .await?;
+            match guilds[..] {
+                [ref guild] => Self::get_guild(client, guild.id).await?,
+                [] => return Err(Box::new(InitError::NoGuilds)),
+                _ => return Err(Box::new(InitError::TooManyGuilds)),
+            }
+        };
+
+        self.init_roles_from_guild(client, guild).await
+    }
+
+    async fn get_guild(client: &Client, id: Id<GuildMarker>) -> Result<Guild, Error> {
+        match client.guild(id).exec().await {
+            Ok(guild) => Ok(guild.model().await?),
+            Err(err) => Err(Box::new(err)),
+        }
+    }
+
+    async fn init_roles_from_guild(&mut self, client: &Client, guild: Guild) -> Result<(), Error> {
+        let role_name = &self.discord.role_name;
+        let mut names = HashMap::with_capacity(3);
+        names.insert(role_name.live.to_string().to_lowercase(), "live");
+        names.insert(role_name.update.to_string().to_lowercase(), "update");
+        names.insert(role_name.vod.to_string().to_lowercase(), "vod");
+        let mut not_found: HashSet<&String> = names.keys().collect();
+
+        for role in guild.roles {
+            if let Some(event) = names.get(&role.name.to_lowercase()) {
+                let owned = event.to_string();
+                not_found.remove(&owned);
+                info!("Found notification role for {} event: {} (id={})", event, role.name, role.id);
+                self.role_map.insert(owned, role.id.to_string());
+            }
+        }
+
+        let guild_id = guild.id;
+        for name in not_found {
+            if name.is_empty() {
+                continue;
+            }
+
+            info!("Creating role with name {name:?}");
+            let response = client
+                .create_role(guild_id)
+                .name(name.as_str())
+                .mentionable(false)
+                .permissions(Permissions::empty())
+                .exec()
+                .resolve();
+
+            if let Err(err) = response.await {
+                error!("Could not create roles due to error: {:?}", err);
+                info!("Make sure the bot has permissions to manage roles in your server. \
+                       Otherwise, try creating the roles manually and restarting the bot. Missing: {:?}", name);
+                continue;
+            }
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]

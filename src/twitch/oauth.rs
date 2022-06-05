@@ -79,7 +79,6 @@ impl OauthClient {
 
         // TODO: Exponential backoff, proper handling for individual error codes
         loop {
-            println!("Trying to authorize...");
             let response = self.http.post(&endpoint).form(&body).send().await;
 
             if let Ok(res) = response {
@@ -148,7 +147,10 @@ impl OauthClient {
                 429 => {
                     if let Some(header) = res.headers().get("Retry-After") {
                         let retry_after = header.to_str()?.parse()?;
-                        warn!("Rate limit exceeded, retrying in {} seconds...", retry_after);
+                        warn!(
+                            "Rate limit exceeded, retrying in {} seconds...",
+                            retry_after
+                        );
                         tokio::time::sleep(Duration::from_secs(retry_after)).await;
                     } else {
                         warn!("Rate limit exceeded, retrying in 10 seconds...");
