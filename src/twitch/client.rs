@@ -1,6 +1,7 @@
 use lazy_static::lazy_static;
 
 use eos::fmt::{format_spec, FormatSpec};
+use log::info;
 use lru::LruCache;
 use oauth::QueryParams;
 use regex::Regex;
@@ -37,6 +38,7 @@ impl TwitchClient {
 
     pub async fn refresh_auth(&mut self) -> Result<(), AuthorizationError> {
         if self.identity.expires_at < Instant::now() + Duration::from_secs(600) {
+            info!("Refreshing oauth token...");
             self.identity = self.oauth.authorize().await?;
         }
         Ok(())

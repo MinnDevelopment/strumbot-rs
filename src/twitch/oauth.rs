@@ -5,6 +5,7 @@ use std::{
 };
 
 use bytes::Bytes;
+use log::warn;
 use reqwest::{Client as HttpClient, Method};
 use serde::Deserialize;
 
@@ -138,6 +139,7 @@ impl OauthClient {
             let res = self.http.execute(request).await?;
             match res.status().as_u16() {
                 x if x >= 500 => {
+                    warn!("Server error {x}, retrying...");
                     continue;
                 }
                 401 => {
@@ -146,8 +148,10 @@ impl OauthClient {
                 429 => {
                     if let Some(header) = res.headers().get("Retry-After") {
                         let retry_after = header.to_str()?.parse()?;
+                        warn!("Rate limit exceeded, retrying in {} seconds...", retry_after);
                         tokio::time::sleep(Duration::from_secs(retry_after)).await;
                     } else {
+                        warn!("Rate limit exceeded, retrying in 10 seconds...");
                         tokio::time::sleep(Duration::from_secs(10)).await;
                     }
                     continue;

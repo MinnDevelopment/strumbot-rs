@@ -958,6 +958,7 @@ dependencies = [
  "eos",
  "futures",
  "lazy_static",
+ "log",
  "lru",
  "regex",
  "reqwest",

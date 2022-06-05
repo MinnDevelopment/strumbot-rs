@@ -17,6 +17,7 @@ bytes = "1.0"
 # iso8601-timestamp = "0.1.10"
 lru = "0.7.6"
 lazy_static = "1.4"
+log = "0.4"
 
 [dependencies.regex]
 version = "1.5"

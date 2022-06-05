@@ -35,49 +35,8 @@ async fn main() -> Async {
 
     let mut client = TwitchClient::new(oauth).await?;
 
-    // for login in &config.twitch.user_login {
-    //     println!("Fetching {login}");
-    //     let result = client.get_user_from_login(login.clone()).await?;
-
-    //     println!("{result:?}")
-    // }
-
-    // let game = client.get_game_by_id("512724".to_string()).await?;
-    // println!("First {game:?}");
-    // let game = client.get_game_by_id("512724".to_string()).await?;
-    // println!("Cached {game:?}");
-
-    // let streams = client
-    //     .get_streams_by_login(&config.twitch.user_login)
-    //     .await?;
-
     let webhook_params: WebhookParams = config.discord.stream_notifications.parse()?;
-    let webhook = WebhookClient::new(Client::new("".to_string()), webhook_params);
-
-    // for stream in streams {
-    //     println!("{:?} top clips", stream.title);
-    //     let clips = stream.get_top_clips(&client, 5).await?;
-    //     for clip in clips {
-    //         println!("{} - {}", clip.title, clip.url)
-    //     }
-
-    //     println!("\nAnd Video: {}", stream.get_video(&client).await?.url);
-
-    //     let thumbnail = &stream.thumbnail_url;
-    //     let image = client.get_thumbnail(thumbnail).await?;
-    //     let attach = Attachment::from_bytes("thumbnail.jpg".into(), image, 0);
-
-    //     webhook
-    //         .send_message()
-    //         .attachments(&[attach])?
-    //         .exec()
-    //         .await?;
-    // }
-
-    // todo: basic flow
-    // - get streams
-    // - run each watcher instance in sequence (borrow twitch client)
-    // - refresh authorization if needed (twitch.refresh_auth())
+    let webhook = WebhookClient::new(Client::new(config.discord.token.to_string()), webhook_params);
 
     let mut watchers: HashMap<String, StreamWatcher> =
         HashMap::with_capacity(config.twitch.user_login.len());
