@@ -1,12 +1,16 @@
 use std::{sync::Arc, time::Duration};
 
-use eos::fmt::{format_spec, FormatSpec};
 use log::info;
+use twilight_model::http::attachment::Attachment;
+use twilight_util::builder::embed::{
+    EmbedAuthorBuilder, EmbedBuilder, EmbedFieldBuilder, ImageSource,
+};
 
 use crate::{
     config::{Config, EventName},
     discord::WebhookClient,
     twitch::{Error, Game, Stream, TwitchClient},
+    util::to_unix,
 };
 
 const fn split_duration(dur: &Duration) -> (u8, u8, u8) {
@@ -108,7 +112,7 @@ impl StreamWatcher {
             .get_role("live")
             .map(|id| format!("<@&{id}>"))
             .unwrap_or_else(|| "".to_string());
-        let user_name = stream.user_name;
+        let user_name = &stream.user_name;
         info!("User {} started streaming {}", user_name, game.name);
 
         let enabled = &self.config.discord.enabled_events;
@@ -116,16 +120,36 @@ impl StreamWatcher {
             return Ok(());
         }
 
-        // TODO: Embed
+        let url = format!("https://twitch.tv/{user_name}");
+        let thumbnail = stream.get_thumbnail(client).await;
+        let mut embed = EmbedBuilder::new()
+            .author(EmbedAuthorBuilder::new(stream.title.clone()).build())
+            .color(0x6441A4)
+            .title(&url)
+            .url(&url);
 
-        webhook
-            .send_message()
-            .content(&format!(
-                "{} {} is live with **{}**!",
-                mention, user_name, game.name
-            ))?
-            .exec()
-            .await?;
+        if !game.name.is_empty() {
+            embed = embed.field(EmbedFieldBuilder::new("Playing", &game.name).inline());
+        }
+
+        embed = embed.field(
+            EmbedFieldBuilder::new("Started", format!("<t:{}:F>", to_unix(&stream.started_at)))
+                .inline(),
+        );
+
+        let content = format!("{} {} is live with **{}**!", mention, user_name, game.name);
+
+        let mut request = webhook.send_message().content(&content)?;
+
+        let files; // must have same lifetime as request
+        if let Some(thumbnail) = thumbnail {
+            let filename = "thumbnail.png".to_string();
+            embed = embed.image(ImageSource::attachment(&filename)?);
+            files = [Attachment::from_bytes(filename, thumbnail, 0)];
+            request = request.attachments(&files)?;
+        }
+
+        request.embeds(&[embed.build()])?.exec().await?;
         Ok(())
     }
 

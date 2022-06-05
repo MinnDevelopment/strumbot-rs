@@ -1,5 +1,7 @@
 use serde::Deserialize;
 
+use super::TwitchClient;
+
 #[derive(Deserialize, Clone, Debug)]
 pub struct Game {
     pub id: String,
@@ -122,17 +124,17 @@ pub struct Stream {
 }
 
 impl Stream {
-    pub async fn get_game(&self, client: &super::TwitchClient) -> Result<Game, super::Error> {
+    pub async fn get_game(&self, client: &TwitchClient) -> Result<Game, super::Error> {
         client.get_game_by_id(self.game_id.clone()).await
     }
 
-    pub async fn get_user(&self, client: &super::TwitchClient) -> Result<User, super::Error> {
+    pub async fn get_user(&self, client: &TwitchClient) -> Result<User, super::Error> {
         client.get_user_from_login(self.user_login.clone()).await
     }
 
     pub async fn get_top_clips(
         &self,
-        client: &super::TwitchClient,
+        client: &TwitchClient,
         num: u8,
     ) -> Result<Vec<Clip>, super::Error> {
         client
@@ -140,8 +142,15 @@ impl Stream {
             .await
     }
 
-    pub async fn get_video(&self, client: &super::TwitchClient) -> Result<Video, super::Error> {
+    pub async fn get_video(&self, client: &TwitchClient) -> Result<Video, super::Error> {
         client.get_video_by_stream(self).await
+    }
+
+    pub async fn get_thumbnail(&self, client: &TwitchClient) -> Option<Vec<u8>> {
+        match client.get_thumbnail(&self.thumbnail_url).await {
+            Ok(img) => Some(img),
+            _ => None,
+        }
     }
 }
 

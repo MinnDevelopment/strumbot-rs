@@ -12,6 +12,10 @@ pub fn locked<T, R>(lock: &Mutex<T>, f: impl FnOnce(&mut T) -> R) -> R {
     }
 }
 
+pub fn to_unix(dt: &eos::DateTime) -> u64 {
+    dt.duration_since(&eos::DateTime::UNIX_EPOCH).as_secs() // we are assuming streams can't start before epoch
+}
+
 #[async_trait]
 pub trait ResponseResolve<T>
 where
