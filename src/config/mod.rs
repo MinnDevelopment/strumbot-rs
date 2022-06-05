@@ -1,14 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
 use errors::InitError;
-use futures::FutureExt;
-use futures::TryFutureExt;
 use log::{error, info};
-use serde::de::DeserializeOwned;
 use serde::Deserialize;
-use twilight_http::response::ResponseFuture;
 use twilight_http::Client;
-use twilight_model::guild::Role;
 use twilight_model::{
     guild::{Guild, Permissions},
     id::{marker::GuildMarker, Id},
@@ -52,7 +47,7 @@ pub struct RoleNameConfig {
     pub update: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, PartialEq, Eq)]
 pub enum EventName {
     #[serde(rename = "live")]
     Live,
@@ -155,8 +150,7 @@ impl Config {
 
             if let Err(err) = response.await {
                 error!("Could not create roles due to error: {:?}", err);
-                info!("Make sure the bot has permissions to manage roles in your server. \
-                       Otherwise, try creating the roles manually and restarting the bot. Missing: {:?}", name);
+                info!("Make sure the bot has permissions to manage roles in your server. Missing: {:?}", name);
                 break;
             }
         }

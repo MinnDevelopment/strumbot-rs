@@ -45,6 +45,14 @@ impl TwitchClient {
     }
 
     pub async fn get_game_by_id(&self, id: String) -> Result<Game, Error> {
+        lazy_static! {
+            static ref EMPTY_GAME: Game = Game::empty();
+        }
+
+        if id.is_empty() {
+            return Ok(EMPTY_GAME.clone());
+        }
+
         let cached_game = locked(&self.games_cache, |cache| cache.get(&id).cloned());
         if let Some(game) = cached_game {
             return Ok(game);

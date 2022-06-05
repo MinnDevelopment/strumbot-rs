@@ -7,6 +7,7 @@ use log::info;
 use std::{
     collections::{HashMap, HashSet},
     error::Error,
+    sync::Arc,
     time::Duration,
 };
 use twilight_http::Client;
@@ -37,6 +38,7 @@ async fn main() -> Async {
 
     let discord_client = Client::new(config.discord.token.to_string());
     config.init_roles(&discord_client).await?;
+    let config = Arc::new(config);
 
     let webhook_params: WebhookParams = config.discord.stream_notifications.parse()?;
     let webhook = WebhookClient::new(discord_client, webhook_params);
@@ -44,7 +46,7 @@ async fn main() -> Async {
     let mut watchers: HashMap<String, StreamWatcher> =
         HashMap::with_capacity(config.twitch.user_login.len());
     for login in &config.twitch.user_login {
-        let watcher = StreamWatcher::new(login.clone());
+        let watcher = StreamWatcher::new(login.clone(), config.clone());
         watchers.insert(login.clone(), watcher);
     }
 
@@ -53,8 +55,8 @@ async fn main() -> Async {
     info!("Connecting to Twitch...");
 
     let oauth = OauthClient::new(ClientParams {
-        client_id: config.twitch.client_id,
-        client_secret: config.twitch.client_secret,
+        client_id: config.twitch.client_id.to_string(),
+        client_secret: config.twitch.client_secret.to_string(),
     });
 
     let mut client = TwitchClient::new(oauth).await?;
