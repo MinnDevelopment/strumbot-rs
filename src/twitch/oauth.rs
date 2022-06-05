@@ -1,15 +1,17 @@
 use std::{
     collections::HashMap,
-    fmt::{Display, Formatter},
     str::FromStr,
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use bytes::Bytes;
 use reqwest::{Client as HttpClient, Method};
 use serde::Deserialize;
 
-use super::Error;
+use super::{
+    error::{AuthorizationError, HttpError, RequestTimeoutError},
+    Error,
+};
 
 const BASE_URL: &str = "https://api.twitch.tv/helix";
 
@@ -57,17 +59,6 @@ pub struct OauthClient {
     pub params: ClientParams,
     pub http: HttpClient,
 }
-
-#[derive(Debug)]
-pub struct AuthorizationError;
-
-impl Display for AuthorizationError {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "Authorization error")
-    }
-}
-
-impl std::error::Error for AuthorizationError {}
 
 impl OauthClient {
     pub fn new(params: ClientParams) -> Self {
@@ -135,16 +126,41 @@ impl OauthClient {
             }
         }
 
-        let request = self
-            .http
-            .request(method, full_url)
-            .header("Client-ID", &self.params.client_id)
-            .bearer_auth(&id.access_token)
-            .build()?;
+        // TODO: logging
+        for _ in 0..3 {
+            let request = self
+                .http
+                .request(method.clone(), full_url.clone())
+                .header("Client-ID", &self.params.client_id)
+                .bearer_auth(&id.access_token)
+                .build()?;
 
-        let mut res = self.http.execute(request).await?;
-        res = res.error_for_status()?;
-        handler(res.bytes().await?)
+            let res = self.http.execute(request).await?;
+            match res.status().as_u16() {
+                x if x >= 500 => {
+                    continue;
+                }
+                401 => {
+                    return Err(Box::new(AuthorizationError));
+                }
+                429 => {
+                    if let Some(header) = res.headers().get("Retry-After") {
+                        let retry_after = header.to_str()?.parse()?;
+                        tokio::time::sleep(Duration::from_secs(retry_after)).await;
+                    } else {
+                        tokio::time::sleep(Duration::from_secs(10)).await;
+                    }
+                    continue;
+                }
+                x if x < 300 => {
+                    return handler(res.bytes().await?);
+                }
+                _ => {
+                    return Err(Box::new(HttpError::from(res).await?));
+                }
+            }
+        }
+        Err(Box::new(RequestTimeoutError))
     }
 
     pub async fn get<F, T>(

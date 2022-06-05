@@ -68,5 +68,10 @@ async fn main() -> Async {
             .await?;
     }
 
+    // todo: basic flow
+    // - get streams
+    // - run each watcher instance in sequence (borrow twitch client)
+    // - refresh authorization if needed (twitch.refresh_auth())
+
     Ok(())
 }

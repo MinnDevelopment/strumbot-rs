@@ -1,5 +1,4 @@
 pub use client::TwitchClient;
-pub use error::TwitchError;
 pub use model::*;
 
 pub mod error;

@@ -4,9 +4,15 @@ use eos::fmt::{format_spec, FormatSpec};
 use lru::LruCache;
 use oauth::QueryParams;
 use regex::Regex;
-use std::sync::Mutex;
+use std::{
+    sync::Mutex,
+    time::{Duration, Instant},
+};
 
-use super::{oauth, Clip, Error, Game, Stream, TwitchData, TwitchError, User, Video, VideoType};
+use super::{
+    error::AuthorizationError, error::TwitchError, oauth, Clip, Error, Game, Stream, TwitchData,
+    User, Video, VideoType,
+};
 use crate::util::locked;
 
 type DateTime = eos::DateTime<eos::Utc>;
@@ -20,13 +26,20 @@ pub struct TwitchClient {
 }
 
 impl TwitchClient {
-    pub async fn new(oauth: oauth::OauthClient) -> Result<TwitchClient, oauth::AuthorizationError> {
+    pub async fn new(oauth: oauth::OauthClient) -> Result<TwitchClient, AuthorizationError> {
         let identity = oauth.authorize().await?;
         Ok(Self {
             oauth,
             identity,
             games_cache: Mutex::new(LruCache::new(100)),
         })
+    }
+
+    pub async fn refresh_auth(&mut self) -> Result<(), AuthorizationError> {
+        if self.identity.expires_at < Instant::now() + Duration::from_secs(600) {
+            self.identity = self.oauth.authorize().await?;
+        }
+        Ok(())
     }
 
     pub async fn get_game_by_id(&self, id: String) -> Result<Game, Error> {
@@ -160,6 +173,15 @@ impl TwitchClient {
         let request = self.oauth.http.get(full_url).build()?;
         let response = self.oauth.http.execute(request).await?;
 
-        Ok(response.bytes().await?.as_ref().to_vec())
+        if response.status().is_success() {
+            Ok(response.bytes().await?.as_ref().to_vec())
+        } else if response.status().as_u16() == 404 {
+            Err(Box::new(TwitchError::NotFound(
+                "Thumbnail".to_string(),
+                url.to_string(),
+            )))
+        } else {
+            Err(Box::new(response.error_for_status().unwrap_err()))
+        }
     }
 }
