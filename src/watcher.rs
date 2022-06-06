@@ -216,7 +216,7 @@ impl StreamWatcher {
         match self.offline_timestamp {
             None => {
                 let offset: Duration =
-                    Duration::from_secs((60 * self.config.twitch.offline_grace_period).into());
+                    Duration::from_secs(60 * self.config.twitch.offline_grace_period as u64);
                 self.offline_timestamp = Some(Instant::now() + offset);
                 return Ok(());
             }
@@ -314,7 +314,7 @@ impl StreamWatcher {
                         c.title.to_string()
                     };
                     format!(
-                        "`{}.` [{} \u{1F855}]({}) \u{2022} **${}**\u{00A0}views\n",
+                        "`{}.` [{} \u{1F855}]({}) \u{2022} **{}**\u{00A0}views\n",
                         i + 1,
                         limited,
                         c.url,
