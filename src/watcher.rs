@@ -43,7 +43,7 @@ impl StreamSegment {
 
     fn vod_link(&self) -> String {
         let (hour, min, sec) = split_duration(&self.timestamp);
-        let display = format!("{hour:02}:{min:02}:{sec:02}");
+        let display = format!("`{hour:02}:{min:02}:{sec:02}`");
         if self.video_id.is_empty() {
             // Don't link a VOD if there is no video ID (deleted vod or streamer forgot to enable it or twitch being twitch)
             display
@@ -89,13 +89,13 @@ impl StreamWatcher {
         stream: StreamUpdate,
     ) -> Result<(), Error> {
         match stream {
-            StreamUpdate::Offline if !self.segments.is_empty() => {
-                self.on_offline(client, webhook).await
-            }
             StreamUpdate::Live(stream) if self.segments.is_empty() => {
                 self.on_go_live(client, webhook, *stream).await
             }
             StreamUpdate::Live(stream) => self.on_update(client, webhook, *stream).await,
+            StreamUpdate::Offline if !self.segments.is_empty() => {
+                self.on_offline(client, webhook).await
+            }
             _ => Ok(()),
         }
     }
@@ -127,13 +127,19 @@ impl StreamWatcher {
         let thumbnail = stream.get_thumbnail(client).await;
         let files; // must have same lifetime as request
         if let Some(thumbnail) = thumbnail {
-            let filename = "thumbnail.png".to_string();
+            let filename = "thumbnail.jpg".to_string();
             embed = embed.image(ImageSource::attachment(&filename)?);
             files = [Attachment::from_bytes(filename, thumbnail, 0)];
             request = request.attachments(&files)?;
         }
 
-        request.embeds(&[embed.build()])?.exec().await?;
+        let embed = embed.build();
+        if let Err(err) = request.embeds(&[embed.clone()])?.exec().await {
+            error!(
+                "Failed to send live event embed: {}\nEmbed: {:?}",
+                err, embed
+            );
+        }
         Ok(())
     }
 
@@ -174,13 +180,19 @@ impl StreamWatcher {
         let thumbnail = stream.get_thumbnail(client).await;
         let files; // must have same lifetime as request
         if let Some(thumbnail) = thumbnail {
-            let filename = "thumbnail.png".to_string();
+            let filename = "thumbnail.jpg".to_string();
             embed = embed.image(ImageSource::attachment(&filename)?);
             files = [Attachment::from_bytes(filename, thumbnail, 0)];
             request = request.attachments(&files)?;
         }
 
-        request.embeds(&[embed.build()])?.exec().await?;
+        let embed = embed.build();
+        if let Err(err) = request.embeds(&[embed.clone()])?.exec().await {
+            error!(
+                "Failed to send update event embed: {}\nEmbed: {:?}",
+                err, embed
+            );
+        }
         Ok(())
     }
 
@@ -220,22 +232,17 @@ impl StreamWatcher {
             }
         };
 
-        self.segments.clear();
-        self.offline_timestamp = None;
-
         let mention = self.get_mention("vod");
         let mut embed = EmbedBuilder::new().color(0x6441A4);
         let content = format!("{} VOD from {}", mention, self.user_name);
         let mut request = webhook.send_message().content(&content)?;
 
-        let data;
         let files;
         embed = if let Some(video) = vod {
             if let Some(thumbnail) = video.get_thumbnail(client).await {
-                data = thumbnail;
-                let filename = "thumbnail.png".to_string();
+                let filename = "thumbnail.jpg".to_string();
                 embed = embed.image(ImageSource::attachment(&filename)?);
-                files = [Attachment::from_bytes(filename, data, 0)];
+                files = [Attachment::from_bytes(filename, thumbnail, 0)];
                 request = request.attachments(&files)?;
             }
 
@@ -269,6 +276,9 @@ impl StreamWatcher {
             embed = embed.field(EmbedFieldBuilder::new("Timestamps", &part).inline());
         }
 
+        self.segments.clear();
+        self.offline_timestamp = None;
+
         let num = self.config.twitch.top_clips.clamp(0, 5);
         if num > 0 {
             let clips = client
@@ -285,7 +295,7 @@ impl StreamWatcher {
                         limited.to_string()
                     };
                     format!(
-                        "`{}.` [{} \u{1F855}]({}) \u{2022} **${}**\u{00A0}views \n",
+                        "`{}.` [{} \u{1F855}]({}) \u{2022} **${}**\u{00A0}views\n",
                         i + 1,
                         limited,
                         c.url,
@@ -298,7 +308,13 @@ impl StreamWatcher {
             }
         }
 
-        request.embeds(&[embed.build()])?.exec().await?;
+        let embed = embed.build();
+        if let Err(err) = request.embeds(&[embed.clone()])?.exec().await {
+            error!(
+                "Failed to send vod event embed: {}\nEmbed: {:?}",
+                err, embed
+            );
+        }
         Ok(())
     }
 

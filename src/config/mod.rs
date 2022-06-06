@@ -153,7 +153,7 @@ impl Config {
                     error!("Could not create roles due to error: {:?}", err);
                     warn!("Make sure the bot has permissions to manage roles in your server. Missing: {:?}", name);
                     break;
-                },
+                }
                 Ok(role) => {
                     let event = names.get(name).unwrap().to_string();
                     info!("Created role with name {name:?} for {event:?} event");

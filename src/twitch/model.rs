@@ -80,9 +80,13 @@ pub struct Video {
 
 impl Video {
     pub async fn get_thumbnail(&self, client: &TwitchClient) -> Option<Vec<u8>> {
-        match client.get_thumbnail(&self.thumbnail_url).await {
-            Ok(img) => Some(img),
-            _ => None,
+        if self.thumbnail_url.is_empty() {
+            None
+        } else {
+            match client.get_thumbnail(&self.thumbnail_url).await {
+                Ok(img) => Some(img),
+                _ => None,
+            }
         }
     }
 }
