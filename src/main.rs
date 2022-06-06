@@ -44,7 +44,7 @@ async fn main() -> Async {
     let mut watchers = HashMap::with_capacity(config.twitch.user_login.len());
     for login in &config.twitch.user_login {
         let watcher = StreamWatcher::new(login.clone(), config.clone());
-        watchers.insert(login.clone(), watcher);
+        watchers.insert(login.to_lowercase(), watcher);
     }
 
     // Twitch setup
