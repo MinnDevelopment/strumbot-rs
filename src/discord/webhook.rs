@@ -1,10 +1,7 @@
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::{error::Error, fmt::Display, str::FromStr};
-use twilight_http::{
-    request::channel::webhook::{DeleteWebhook, ExecuteWebhook},
-    Client,
-};
+use twilight_http::{request::channel::webhook::ExecuteWebhook, Client};
 use twilight_model::id::{marker::WebhookMarker, Id};
 
 pub struct WebhookClient {
@@ -20,11 +17,6 @@ impl WebhookClient {
     pub fn send_message(&self) -> ExecuteWebhook {
         let params = &self.params;
         self.client.execute_webhook(params.id, &params.token)
-    }
-
-    pub fn delete(&self) -> DeleteWebhook {
-        let params = &self.params;
-        self.client.delete_webhook(params.id).token(&params.token)
     }
 }
 

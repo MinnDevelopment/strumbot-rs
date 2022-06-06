@@ -78,6 +78,15 @@ pub struct Video {
     pub created_at: eos::DateTime,
 }
 
+impl Video {
+    pub async fn get_thumbnail(&self, client: &TwitchClient) -> Option<Vec<u8>> {
+        match client.get_thumbnail(&self.thumbnail_url).await {
+            Ok(img) => Some(img),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Deserialize, Clone, Debug)]
 pub struct Clip {
     pub id: String,
@@ -126,20 +135,6 @@ pub struct Stream {
 impl Stream {
     pub async fn get_game(&self, client: &TwitchClient) -> Result<Game, super::Error> {
         client.get_game_by_id(self.game_id.clone()).await
-    }
-
-    pub async fn get_user(&self, client: &TwitchClient) -> Result<User, super::Error> {
-        client.get_user_from_login(self.user_login.clone()).await
-    }
-
-    pub async fn get_top_clips(
-        &self,
-        client: &TwitchClient,
-        num: u8,
-    ) -> Result<Vec<Clip>, super::Error> {
-        client
-            .get_top_clips(self.user_id.clone(), &self.started_at, num)
-            .await
     }
 
     pub async fn get_video(&self, client: &TwitchClient) -> Result<Video, super::Error> {

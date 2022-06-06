@@ -15,9 +15,7 @@ use twitch::TwitchClient;
 use watcher::{StreamUpdate, StreamWatcher};
 
 mod config;
-#[allow(dead_code)]
 mod discord;
-#[allow(dead_code)]
 mod twitch;
 mod util;
 mod watcher;
@@ -43,8 +41,7 @@ async fn main() -> Async {
     let webhook_params: WebhookParams = config.discord.stream_notifications.parse()?;
     let webhook = WebhookClient::new(discord_client, webhook_params);
 
-    let mut watchers: HashMap<String, StreamWatcher> =
-        HashMap::with_capacity(config.twitch.user_login.len());
+    let mut watchers = HashMap::with_capacity(config.twitch.user_login.len());
     for login in &config.twitch.user_login {
         let watcher = StreamWatcher::new(login.clone(), config.clone());
         watchers.insert(login.clone(), watcher);
@@ -82,7 +79,7 @@ async fn main() -> Async {
         for stream in streams {
             if let Some(watcher) = watchers.get_mut(&stream.user_login.clone().to_lowercase()) {
                 watcher
-                    .update(&client, &webhook, StreamUpdate::LIVE(stream))
+                    .update(&client, &webhook, StreamUpdate::Live(Box::new(stream)))
                     .await?; // TODO: Handle errors
             }
         }
@@ -91,7 +88,7 @@ async fn main() -> Async {
         for (login, watcher) in &mut watchers {
             if !results.contains(&login.to_lowercase()) {
                 watcher
-                    .update(&client, &webhook, StreamUpdate::OFFLINE)
+                    .update(&client, &webhook, StreamUpdate::Offline)
                     .await?; // TODO: Handle errors
             }
         }

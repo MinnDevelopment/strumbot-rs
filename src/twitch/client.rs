@@ -1,9 +1,6 @@
 use lazy_static::lazy_static;
 
-use eos::{
-    fmt::{format_spec, FormatSpec},
-    Time,
-};
+use eos::fmt::{format_spec, FormatSpec};
 use log::info;
 use lru::LruCache;
 use oauth::QueryParams;
@@ -15,7 +12,7 @@ use std::{
 
 use super::{
     error::AuthorizationError, error::TwitchError, oauth, Clip, Error, Game, Stream, TwitchData,
-    User, Video, VideoType,
+    Video, VideoType,
 };
 use crate::util::locked;
 
@@ -78,23 +75,6 @@ impl TwitchClient {
             cache.push(key, game.clone());
             game
         }))
-    }
-
-    /// Gets the user id for the given user login
-    pub async fn get_user_from_login(&self, user_login: String) -> Result<User, Error> {
-        let name = user_login.to_string();
-        let query = build_query!(
-            "login" => user_login
-        );
-        self.oauth
-            .get(&self.identity, "users", query, move |s| {
-                let mut body: TwitchData<User> = serde_json::from_slice(&s)?;
-                match body.data.pop() {
-                    Some(user) => Ok(user),
-                    None => Err(Box::new(TwitchError::NotFound("User".to_string(), name))),
-                }
-            })
-            .await
     }
 
     pub async fn get_streams_by_login(&self, user_login: &[String]) -> Result<Vec<Stream>, Error> {

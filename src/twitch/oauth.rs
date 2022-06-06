@@ -199,12 +199,6 @@ pub struct Identity {
     pub token_type: String,
 }
 
-impl Identity {
-    pub fn is_expired(&self) -> bool {
-        self.expires_at < Instant::now()
-    }
-}
-
 impl FromStr for Identity {
     type Err = serde_json::Error;
 
@@ -228,7 +222,6 @@ mod tests {
         )
         .unwrap();
 
-        assert!(!identity.is_expired());
         assert_eq!(identity.access_token, "jostpf5q0uzmxmkba9iyug38kjtgh");
         assert_eq!(identity.token_type, "bearer");
     }

@@ -1,6 +1,7 @@
-use std::{sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration, time::Instant};
 
-use log::info;
+use eos::DateTime;
+use log::{error, info};
 use twilight_model::http::attachment::Attachment;
 use twilight_util::builder::embed::{
     EmbedAuthorBuilder, EmbedBuilder, EmbedFieldBuilder, ImageSource,
@@ -13,7 +14,7 @@ use crate::{
 };
 
 const fn split_duration(dur: &Duration) -> (u8, u8, u8) {
-    let mut secs = dur.as_secs();
+    let secs = dur.as_secs();
     let hour = (secs / 3600) % 60;
     let mins = (secs / 60) % 60;
     let secs = secs % 60;
@@ -56,24 +57,28 @@ impl StreamSegment {
 }
 
 pub enum StreamUpdate {
-    LIVE(Stream),
-    OFFLINE,
+    Live(Box<Stream>),
+    Offline,
 }
 
 pub struct StreamWatcher {
-    user_login: String,
+    user_name: String,
+    user_id: String,
     config: Arc<Config>,
     segments: Vec<StreamSegment>,
-    offline_timestamp: eos::DateTime<eos::Utc>,
+    start_timestamp: DateTime,
+    offline_timestamp: Option<Instant>,
 }
 
 impl StreamWatcher {
-    pub fn new(user_login: String, config: Arc<Config>) -> Self {
+    pub fn new(user_name: String, config: Arc<Config>) -> Self {
         Self {
-            user_login,
+            user_name,
+            user_id: "".to_string(), // initialized in go_live
             config,
             segments: Vec::new(),
-            offline_timestamp: eos::DateTime::utc_now(), // updated by first offline call
+            start_timestamp: DateTime::utc_now(),
+            offline_timestamp: None,
         }
     }
 
@@ -83,13 +88,15 @@ impl StreamWatcher {
         webhook: &WebhookClient,
         stream: StreamUpdate,
     ) -> Result<(), Error> {
-        // TODO: implement logic for LIVE and UPDATE
         match stream {
-            StreamUpdate::OFFLINE => self.on_offline(client, webhook).await,
-            StreamUpdate::LIVE(stream) if self.segments.is_empty() => {
-                self.on_go_live(client, webhook, stream).await
+            StreamUpdate::Offline if !self.segments.is_empty() => {
+                self.on_offline(client, webhook).await
             }
-            StreamUpdate::LIVE(stream) => self.on_update(client, webhook, stream).await,
+            StreamUpdate::Live(stream) if self.segments.is_empty() => {
+                self.on_go_live(client, webhook, *stream).await
+            }
+            StreamUpdate::Live(stream) => self.on_update(client, webhook, *stream).await,
+            _ => Ok(()),
         }
     }
 
@@ -99,6 +106,10 @@ impl StreamWatcher {
         webhook: &WebhookClient,
         stream: Stream,
     ) -> Result<(), Error> {
+        self.offline_timestamp = None;
+        self.start_timestamp = stream.started_at;
+        self.user_id = stream.user_id.clone();
+
         let game = self.add_segment(client, &stream).await?;
         let mention = self.get_mention("live");
         let user_name = &stream.user_name;
@@ -132,6 +143,7 @@ impl StreamWatcher {
         webhook: &WebhookClient,
         stream: Stream,
     ) -> Result<(), Error> {
+        self.offline_timestamp = None;
         let old_game = match self.segments.last() {
             Some(seg) if seg.game.id == stream.game_id => return Ok(()),
             Some(seg) => seg.game.clone(), // have to clone so the borrow isn't an issue later
@@ -177,6 +189,116 @@ impl StreamWatcher {
         client: &TwitchClient,
         webhook: &WebhookClient,
     ) -> Result<(), Error> {
+        // Check if the offline grace period is over (usually 2 minutes)
+        match self.offline_timestamp {
+            None => {
+                let offset: Duration =
+                    Duration::from_secs((60 * self.config.twitch.offline_grace_period).into());
+                self.offline_timestamp = Some(Instant::now() + offset);
+                return Ok(());
+            }
+            Some(instant) => {
+                if instant > Instant::now() {
+                    return Ok(());
+                }
+            }
+        }
+
+        if self.is_skipped(EventName::Vod) {
+            self.segments.clear();
+            self.offline_timestamp = None;
+            return Ok(());
+        }
+
+        let start_segment = self.segments.first().expect("Offline without any segments");
+
+        let vod = match client.get_video_by_id(start_segment.video_id.clone()).await {
+            Ok(vid) => Some(vid),
+            Err(e) => {
+                error!("Failed to get VOD for offline stream: {}", e);
+                None
+            }
+        };
+
+        self.segments.clear();
+        self.offline_timestamp = None;
+
+        let mention = self.get_mention("vod");
+        let mut embed = EmbedBuilder::new().color(0x6441A4);
+        let content = format!("{} VOD from {}", mention, self.user_name);
+        let mut request = webhook.send_message().content(&content)?;
+
+        let data;
+        let files;
+        embed = if let Some(video) = vod {
+            if let Some(thumbnail) = video.get_thumbnail(client).await {
+                data = thumbnail;
+                let filename = "thumbnail.png".to_string();
+                embed = embed.image(ImageSource::attachment(&filename)?);
+                files = [Attachment::from_bytes(filename, data, 0)];
+                request = request.attachments(&files)?;
+            }
+
+            embed
+                .author(EmbedAuthorBuilder::new(video.title.clone()))
+                .url(&video.url)
+                .title(&video.url)
+        } else {
+            embed.author(EmbedAuthorBuilder::new("<Video Removed>".to_string()))
+        };
+
+        // Build the timestamp index for each segment of the stream
+        let timestamps: Vec<String> = self.segments.iter().map(|s| s.vod_link()).collect();
+
+        // Split into chunks of 1800 characters to stay below embed limits
+        // TODO: Handle case with over 6k characters properly
+        let mut index = vec![];
+        let mut current = String::with_capacity(2000);
+        for stamp in timestamps {
+            if current.len() + stamp.len() > 1800 {
+                index.push(current);
+                current = String::with_capacity(2000);
+            }
+
+            current.push_str(&stamp);
+            current.push('\n');
+        }
+        index.push(current);
+
+        for part in index {
+            embed = embed.field(EmbedFieldBuilder::new("Timestamps", &part).inline());
+        }
+
+        let num = self.config.twitch.top_clips.clamp(0, 5);
+        if num > 0 {
+            let clips = client
+                .get_top_clips(self.user_id.clone(), &self.start_timestamp, num)
+                .await?;
+            let s: String = clips
+                .iter()
+                .enumerate()
+                .map(|(i, c)| {
+                    let limited = &c.title[..25];
+                    let limited = if c.title.len() >= 25 {
+                        format!("{}...", limited)
+                    } else {
+                        limited.to_string()
+                    };
+                    format!(
+                        "`{}.` [{} \u{1F855}]({}) \u{2022} **${}**\u{00A0}views \n",
+                        i + 1,
+                        limited,
+                        c.url,
+                        c.view_count
+                    )
+                })
+                .collect();
+            if !clips.is_empty() {
+                embed = embed.field(EmbedFieldBuilder::new("Top Clips", &s));
+            }
+        }
+
+        request.embeds(&[embed.build()])?.exec().await?;
         Ok(())
     }
 
