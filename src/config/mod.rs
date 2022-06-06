@@ -76,7 +76,7 @@ pub struct Config {
     pub twitch: TwitchConfig,
     pub discord: DiscordConfig,
     #[serde(default)]
-    role_map: HashMap<String, String>, // map of name -> id (for mentions)
+    role_map: HashMap<String, String>, // map of event -> id (for mentions)
 }
 
 impl Config {
@@ -150,8 +150,8 @@ impl Config {
 
             match response.await {
                 Err(err) => {
-                    error!("Could not create roles due to error: {:?}", err);
-                    warn!("Make sure the bot has permissions to manage roles in your server. Missing: {:?}", name);
+                    error!("Could not create roles due to error: {err:?}");
+                    warn!("Make sure the bot has permissions to manage roles in your server. Missing: {name:?}");
                     break;
                 }
                 Ok(role) => {

@@ -94,6 +94,8 @@ impl OauthClient {
                 }
             }
 
+            // TODO: Handle error.is_timeout() and is_connect()
+
             return Err(AuthorizationError);
         }
     }
@@ -135,6 +137,7 @@ impl OauthClient {
                 .bearer_auth(&id.access_token)
                 .build()?;
 
+            // TODO: handle timeout and connect errors
             let res = self.http.execute(request).await?;
             match res.status().as_u16() {
                 x if x >= 500 => {

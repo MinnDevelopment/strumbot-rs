@@ -72,12 +72,12 @@ async fn main() -> Async {
         // 2. Check which streams are offline/missing
         let results: HashSet<String> = streams
             .iter()
-            .map(|s| s.user_login.clone().to_lowercase())
+            .map(|s| s.user_login.to_lowercase())
             .collect();
 
         // 3. Send updates for all currently live streams
         for stream in streams {
-            if let Some(watcher) = watchers.get_mut(&stream.user_login.clone().to_lowercase()) {
+            if let Some(watcher) = watchers.get_mut(&stream.user_login.to_lowercase()) {
                 watcher
                     .update(&client, &webhook, StreamUpdate::Live(Box::new(stream)))
                     .await?; // TODO: Handle errors
@@ -86,7 +86,7 @@ async fn main() -> Async {
 
         // 4. Send updates for all streams that are offline
         for (login, watcher) in &mut watchers {
-            if !results.contains(&login.to_lowercase()) {
+            if !results.contains(login) {
                 watcher
                     .update(&client, &webhook, StreamUpdate::Offline)
                     .await?; // TODO: Handle errors
