@@ -175,6 +175,12 @@ impl StreamWatcher {
 
         let mention = self.get_mention("update");
         let mut embed = self.create_embed(&stream, &game);
+        embed = match self.segments.last() {
+            Some(segs) if !segs.video_id.is_empty() => {
+                embed.description(format!("Start watching at {}", segs.vod_link()))
+            }
+            _ => embed,
+        };
         let content = format!(
             "{} {} switched game to **{}**!",
             mention, stream.user_name, game.name
@@ -229,11 +235,16 @@ impl StreamWatcher {
 
         let start_segment = self.segments.first().expect("Offline without any segments");
 
-        let vod = match client.get_video_by_id(start_segment.video_id.clone()).await {
-            Ok(vid) => Some(vid),
-            Err(e) => {
-                error!("Failed to get VOD for offline stream: {}", e);
-                None
+        let vid = start_segment.video_id.clone();
+        let vod = if vid.is_empty() {
+            None
+        } else {
+            match client.get_video_by_id(vid).await {
+                Ok(vid) => Some(vid),
+                Err(e) => {
+                    error!("Failed to get VOD for offline stream: {}", e);
+                    None
+                }
             }
         };
 
@@ -260,7 +271,11 @@ impl StreamWatcher {
         };
 
         // Build the timestamp index for each segment of the stream
-        let timestamps: Vec<String> = self.segments.iter().map(|s| s.vod_link()).collect();
+        let timestamps: Vec<String> = self
+            .segments
+            .iter()
+            .map(|s| format!("{} {}", s.vod_link(), s.game.name))
+            .collect();
 
         // Split into chunks of 1800 characters to stay below embed limits
         // TODO: Handle case with over 6k characters properly
