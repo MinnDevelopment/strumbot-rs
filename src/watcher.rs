@@ -33,7 +33,7 @@ impl StreamSegment {
         Ok(Self {
             game: game.clone(),
             timestamp: duration,
-            video_id: stream.get_video(client).await?.id,
+            video_id: stream.get_video(client).await.ok().map(|v| v.id).unwrap_or_default(),
         })
     }
 
