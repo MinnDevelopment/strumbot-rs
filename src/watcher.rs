@@ -288,11 +288,10 @@ impl StreamWatcher {
                 .iter()
                 .enumerate()
                 .map(|(i, c)| {
-                    let limited = &c.title[..25];
                     let limited = if c.title.len() >= 25 {
-                        format!("{}...", limited)
+                        format!("{}...", &c.title[..25])
                     } else {
-                        limited.to_string()
+                        c.title.to_string()
                     };
                     format!(
                         "`{}.` [{} \u{1F855}]({}) \u{2022} **${}**\u{00A0}views\n",
