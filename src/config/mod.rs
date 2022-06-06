@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use errors::InitError;
-use log::{error, info};
+use log::{error, info, warn};
 use serde::Deserialize;
 use twilight_http::Client;
 use twilight_model::{
@@ -122,9 +122,10 @@ impl Config {
         let mut not_found: HashSet<&String> = names.keys().collect();
 
         for role in guild.roles {
-            if let Some(event) = names.get(&role.name.to_lowercase()) {
+            let name = &role.name.to_lowercase();
+            if let Some(event) = names.get(name) {
                 let owned = event.to_string();
-                not_found.remove(&owned);
+                not_found.remove(name);
                 info!(
                     "Found notification role for {} event: {} (id={})",
                     event, role.name, role.id
@@ -139,7 +140,6 @@ impl Config {
                 continue;
             }
 
-            info!("Creating role with name {name:?}");
             let response = client
                 .create_role(guild_id)
                 .name(name.as_str())
@@ -148,10 +148,17 @@ impl Config {
                 .exec()
                 .resolve();
 
-            if let Err(err) = response.await {
-                error!("Could not create roles due to error: {:?}", err);
-                info!("Make sure the bot has permissions to manage roles in your server. Missing: {:?}", name);
-                break;
+            match response.await {
+                Err(err) => {
+                    error!("Could not create roles due to error: {:?}", err);
+                    warn!("Make sure the bot has permissions to manage roles in your server. Missing: {:?}", name);
+                    break;
+                },
+                Ok(role) => {
+                    let event = names.get(name).unwrap().to_string();
+                    info!("Created role with name {name:?} for {event:?} event");
+                    self.role_map.insert(event, role.id.to_string());
+                }
             }
         }
     }

@@ -4,9 +4,9 @@
       "token": "MzgwNDY1NTU1MzU1OTkyMDcw.GDPnv6.FC4xX7mQn3rPV-MkiVboQPWHrv88u4y5aS9NGc",
       "stream_notifications": "https://canary.discord.com/api/webhooks/983342910521090131/6iwWTd-VHL7yzlJ_W1SWagLBVtTbJK8NhlMFpnjkibU5UYqjC0KgfDrTPdxUC7fdSJlD",
       "role_name": {
-        "live": "LIVE",
+        "live": "live",
         "vod": "",
-        "update": "NEW GAME"
+        "update": "new game"
       },
       "enabled_events": ["live", "update", "vod"]
     },
