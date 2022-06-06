@@ -10,3 +10,4 @@ Rust implementation of https://github.com/MinnDevelopment/strumbot (WIP)
 - [ ] Unit tests
 - [ ] Optimization
 - [ ] Documentation
+- [ ] Docker release
