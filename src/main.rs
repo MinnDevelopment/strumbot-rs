@@ -3,6 +3,7 @@ use crate::{
     twitch::oauth::{ClientParams, OauthClient},
 };
 use config::Config;
+use futures::FutureExt;
 use log::info;
 use std::{
     collections::{HashMap, HashSet},
@@ -10,6 +11,7 @@ use std::{
     sync::Arc,
     time::Duration,
 };
+use tokio::time::sleep;
 use twilight_http::Client;
 use twitch::TwitchClient;
 use watcher::{StreamUpdate, StreamWatcher};
@@ -63,6 +65,7 @@ async fn main() -> Async {
         config.twitch.user_login
     );
 
+    // TODO: Use channels and move each watcher to dedicated tokio task
     loop {
         // 1. Fetch streams in batch
         let streams = client
@@ -94,7 +97,9 @@ async fn main() -> Async {
         }
 
         // 5. Refresh oauth token if needed and wait 10 seconds for next poll event
-        client.refresh_auth().await?;
-        tokio::time::sleep(Duration::from_secs(10)).await;
+        tokio::try_join!(
+            client.refresh_auth(),
+            sleep(Duration::from_secs(10)).map(Result::Ok)
+        )?;
     }
 }
