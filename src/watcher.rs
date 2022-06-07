@@ -231,6 +231,8 @@ impl StreamWatcher {
             }
         }
 
+        info!("{} went offline.", self.user_name);
+
         if self.is_skipped(EventName::Vod) {
             self.segments.clear();
             self.offline_timestamp = None;

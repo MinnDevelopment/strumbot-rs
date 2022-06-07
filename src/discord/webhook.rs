@@ -49,7 +49,8 @@ impl FromStr for WebhookParams {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         lazy_static! {
             static ref REGEX: Regex =
-                Regex::new(r"^https?://(?:\w+\.)?discord.com/api/webhooks/(\d+)/([\w-]+)$").unwrap();
+                Regex::new(r"^https?://(?:\w+\.)?discord.com/api/webhooks/(\d+)/([\w-]+)$")
+                    .unwrap();
         }
 
         if let Some(captures) = REGEX.captures(s) {

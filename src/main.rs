@@ -4,7 +4,7 @@ use crate::{
 };
 use config::Config;
 use futures::FutureExt;
-use log::{error, info};
+use log::{debug, error, info};
 use std::{
     collections::{HashMap, HashSet},
     error::Error,
@@ -60,15 +60,18 @@ async fn main() -> Async {
     info!("Listening for streams from {:?}", config.twitch.user_login);
 
     loop {
+        debug!("Fetching streams {:?}", config.twitch.user_login);
         // 1. Fetch streams in batch
         let streams = client
             .get_streams_by_login(&config.twitch.user_login)
             .await?;
 
         // 2. Check which streams are offline/missing
-        let mut offline: HashSet<String> = streams
+        let mut offline: HashSet<String> = config
+            .twitch
+            .user_login
             .iter()
-            .map(|s| s.user_login.to_lowercase())
+            .map(|s| s.to_lowercase())
             .collect();
 
         // 3. Send updates for all currently live streams
@@ -83,6 +86,8 @@ async fn main() -> Async {
                 watchers.insert(name, send);
             }
         }
+
+        debug!("Offline streams are: {:?}", offline);
 
         // 4. Send updates for all streams that are offline
         for name in offline {
