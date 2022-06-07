@@ -86,8 +86,10 @@ async fn main() -> Async {
 
         // 4. Send updates for all streams that are offline
         for name in offline {
-            if let Some(send) = watchers.remove(&name) {
-                push(&send, StreamUpdate::Offline).await;
+            if let Some(send) = watchers.get_mut(&name) {
+                if push(send, StreamUpdate::Offline).await {
+                    watchers.remove(&name);
+                }
             }
         }
 
@@ -128,8 +130,6 @@ fn create_watcher(
     send
 }
 
-async fn push(s: &mpsc::Sender<StreamUpdate>, event: StreamUpdate) {
-    if let Err(e) = s.send(event).await {
-        error!("Error when sending stream update: {}", e);
-    }
+async fn push(s: &mpsc::Sender<StreamUpdate>, event: StreamUpdate) -> bool {
+    s.send(event).await.is_err() // err indicates that the watcher is done
 }
