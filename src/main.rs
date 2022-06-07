@@ -4,14 +4,14 @@ use crate::{
 };
 use config::Config;
 use futures::FutureExt;
-use log::info;
+use log::{error, info};
 use std::{
     collections::{HashMap, HashSet},
     error::Error,
     sync::Arc,
     time::Duration,
 };
-use tokio::time::sleep;
+use tokio::{sync::mpsc, time::sleep};
 use twilight_http::Client;
 use twitch::TwitchClient;
 use watcher::{StreamUpdate, StreamWatcher};
@@ -41,13 +41,10 @@ async fn main() -> Async {
     let config = Arc::new(config);
 
     let webhook_params: WebhookParams = config.discord.stream_notifications.parse()?;
-    let webhook = WebhookClient::new(discord_client, webhook_params);
+    let webhook = Arc::new(WebhookClient::new(discord_client, webhook_params));
 
-    let mut watchers = HashMap::with_capacity(config.twitch.user_login.len());
-    for login in &config.twitch.user_login {
-        let watcher = StreamWatcher::new(login.clone(), config.clone());
-        watchers.insert(login.to_lowercase(), watcher);
-    }
+    let mut watchers: HashMap<String, mpsc::Sender<StreamUpdate>> =
+        HashMap::with_capacity(config.twitch.user_login.len());
 
     // Twitch setup
 
@@ -58,14 +55,10 @@ async fn main() -> Async {
         client_secret: config.twitch.client_secret.to_string(),
     });
 
-    let mut client = TwitchClient::new(oauth).await?;
+    let client = Arc::new(TwitchClient::new(oauth).await?);
 
-    info!(
-        "Starting stream watchers... Listening for streams from {:?}",
-        config.twitch.user_login
-    );
+    info!("Listening for streams from {:?}", config.twitch.user_login);
 
-    // TODO: Use channels and move each watcher to dedicated tokio task
     loop {
         // 1. Fetch streams in batch
         let streams = client
@@ -73,26 +66,28 @@ async fn main() -> Async {
             .await?;
 
         // 2. Check which streams are offline/missing
-        let results: HashSet<String> = streams
+        let mut offline: HashSet<String> = streams
             .iter()
             .map(|s| s.user_login.to_lowercase())
             .collect();
 
         // 3. Send updates for all currently live streams
         for stream in streams {
-            if let Some(watcher) = watchers.get_mut(&stream.user_login.to_lowercase()) {
-                watcher
-                    .update(&client, &webhook, StreamUpdate::Live(Box::new(stream)))
-                    .await?; // TODO: Handle errors
+            let name = stream.user_login.to_lowercase();
+            offline.remove(&name);
+            if let Some(send) = watchers.get_mut(&name) {
+                push(send, StreamUpdate::Live(Box::new(stream))).await;
+            } else {
+                let send = create_watcher(&client, &webhook, &config, &name);
+                push(&send, StreamUpdate::Live(Box::new(stream))).await;
+                watchers.insert(name, send);
             }
         }
 
         // 4. Send updates for all streams that are offline
-        for (login, watcher) in &mut watchers {
-            if !results.contains(login) {
-                watcher
-                    .update(&client, &webhook, StreamUpdate::Offline)
-                    .await?; // TODO: Handle errors
+        for name in offline {
+            if let Some(send) = watchers.remove(&name) {
+                push(&send, StreamUpdate::Offline).await;
             }
         }
 
@@ -101,5 +96,40 @@ async fn main() -> Async {
             client.refresh_auth(),
             sleep(Duration::from_secs(10)).map(Result::Ok)
         )?;
+    }
+}
+
+fn create_watcher(
+    client: &Arc<TwitchClient>,
+    webhook: &Arc<WebhookClient>,
+    config: &Arc<Config>,
+    name: &str,
+) -> mpsc::Sender<StreamUpdate> {
+    let (send, mut receive) = mpsc::channel(2);
+    let mut watcher = StreamWatcher::new(name.to_string(), Arc::clone(config));
+    let twitch = Arc::clone(client);
+    let webhook = Arc::clone(webhook);
+    tokio::spawn(async move {
+        while let Some(event) = receive.recv().await {
+            let result = watcher.update(&twitch, &webhook, event).await;
+            match result {
+                Ok(b) if b => {
+                    break;
+                }
+                Err(e) => {
+                    error!("Error when updating stream watcher: {}", e);
+                }
+                _ => {}
+            }
+        }
+        receive.close();
+    });
+
+    send
+}
+
+async fn push(s: &mpsc::Sender<StreamUpdate>, event: StreamUpdate) {
+    if let Err(e) = s.send(event).await {
+        error!("Error when sending stream update: {}", e);
     }
 }

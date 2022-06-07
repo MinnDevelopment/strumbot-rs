@@ -28,7 +28,7 @@ struct StreamSegment {
 }
 
 impl StreamSegment {
-    async fn from(client: &TwitchClient, stream: &Stream, game: &Game) -> Result<Self, Error> {
+    async fn from(client: &Arc<TwitchClient>, stream: &Stream, game: &Game) -> Result<Self, Error> {
         let duration = eos::DateTime::utc_now().duration_since(&stream.started_at);
         Ok(Self {
             game: game.clone(),
@@ -89,26 +89,30 @@ impl StreamWatcher {
 
     pub async fn update(
         &mut self,
-        client: &TwitchClient,
-        webhook: &WebhookClient,
+        client: &Arc<TwitchClient>,
+        webhook: &Arc<WebhookClient>,
         stream: StreamUpdate,
-    ) -> Result<(), Error> {
+    ) -> Result<bool, Error> {
         match stream {
             StreamUpdate::Live(stream) if self.segments.is_empty() => {
-                self.on_go_live(client, webhook, *stream).await
+                self.on_go_live(client, webhook, *stream).await?;
+                Ok(false)
             }
-            StreamUpdate::Live(stream) => self.on_update(client, webhook, *stream).await,
+            StreamUpdate::Live(stream) => {
+                self.on_update(client, webhook, *stream).await?;
+                Ok(false)
+            }
             StreamUpdate::Offline if !self.segments.is_empty() => {
-                self.on_offline(client, webhook).await
+                self.on_offline(client, webhook).await // returns Ok(true) if ended
             }
-            _ => Ok(()),
+            _ => Ok(false),
         }
     }
 
     async fn on_go_live(
         &mut self,
-        client: &TwitchClient,
-        webhook: &WebhookClient,
+        client: &Arc<TwitchClient>,
+        webhook: &Arc<WebhookClient>,
         stream: Stream,
     ) -> Result<(), Error> {
         self.offline_timestamp = None;
@@ -150,8 +154,8 @@ impl StreamWatcher {
 
     async fn on_update(
         &mut self,
-        client: &TwitchClient,
-        webhook: &WebhookClient,
+        client: &Arc<TwitchClient>,
+        webhook: &Arc<WebhookClient>,
         stream: Stream,
     ) -> Result<(), Error> {
         self.offline_timestamp = None;
@@ -209,20 +213,20 @@ impl StreamWatcher {
 
     async fn on_offline(
         &mut self,
-        client: &TwitchClient,
-        webhook: &WebhookClient,
-    ) -> Result<(), Error> {
+        client: &Arc<TwitchClient>,
+        webhook: &Arc<WebhookClient>,
+    ) -> Result<bool, Error> {
         // Check if the offline grace period is over (usually 2 minutes)
         match self.offline_timestamp {
             None => {
                 let offset: Duration =
                     Duration::from_secs(60 * self.config.twitch.offline_grace_period as u64);
                 self.offline_timestamp = Some(Instant::now() + offset);
-                return Ok(());
+                return Ok(false);
             }
             Some(instant) => {
                 if instant > Instant::now() {
-                    return Ok(());
+                    return Ok(false);
                 }
             }
         }
@@ -230,7 +234,7 @@ impl StreamWatcher {
         if self.is_skipped(EventName::Vod) {
             self.segments.clear();
             self.offline_timestamp = None;
-            return Ok(());
+            return Ok(true);
         }
 
         let start_segment = self.segments.first().expect("Offline without any segments");
@@ -334,11 +338,15 @@ impl StreamWatcher {
                 err, embed
             );
         }
-        Ok(())
+        Ok(true)
     }
 
     #[inline]
-    async fn add_segment(&mut self, client: &TwitchClient, stream: &Stream) -> Result<Game, Error> {
+    async fn add_segment(
+        &mut self,
+        client: &Arc<TwitchClient>,
+        stream: &Stream,
+    ) -> Result<Game, Error> {
         let game = stream
             .get_game(client)
             .await

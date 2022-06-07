@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 
 use eos::fmt::{format_spec, FormatSpec};
-use log::info;
+use log::{info, warn};
 use lru::LruCache;
 use oauth::QueryParams;
 use regex::Regex;
@@ -14,7 +14,7 @@ use super::{
     error::AuthorizationError, error::TwitchError, oauth, Clip, Error, Game, Stream, TwitchData,
     Video, VideoType,
 };
-use crate::util::locked;
+use crate::{twitch::oauth::Identity, util::locked};
 
 type DateTime = eos::DateTime<eos::Utc>;
 
@@ -22,24 +22,38 @@ const RFC3339: [FormatSpec<'static>; 12] = format_spec!("%Y-%m-%dT%H:%M:%SZ");
 
 pub struct TwitchClient {
     oauth: oauth::OauthClient,
-    identity: oauth::Identity,
+    identity: Mutex<oauth::Identity>,
     games_cache: Mutex<LruCache<String, Game>>,
 }
 
 impl TwitchClient {
+    fn identity(&self) -> oauth::Identity {
+        match self.identity.lock() {
+            Ok(it) => it.clone(),
+            Err(poison) => {
+                warn!("Failed to lock identity mutex: {}", poison);
+                let guard = poison.get_ref();
+                Identity::clone(guard)
+            }
+        }
+    }
+
     pub async fn new(oauth: oauth::OauthClient) -> Result<TwitchClient, AuthorizationError> {
         let identity = oauth.authorize().await?;
         Ok(Self {
             oauth,
-            identity,
+            identity: Mutex::new(identity),
             games_cache: Mutex::new(LruCache::new(100)),
         })
     }
 
-    pub async fn refresh_auth(&mut self) -> Result<(), AuthorizationError> {
-        if self.identity.expires_at < Instant::now() + Duration::from_secs(600) {
+    pub async fn refresh_auth(&self) -> Result<(), AuthorizationError> {
+        let identity = self.identity();
+        if identity.expires_at < Instant::now() + Duration::from_secs(600) {
             info!("Refreshing oauth token...");
-            self.identity = self.oauth.authorize().await?;
+            let id = self.oauth.authorize().await?;
+            let mut guard = self.identity.lock().unwrap();
+            *guard = id;
         }
         Ok(())
     }
@@ -62,7 +76,7 @@ impl TwitchClient {
         let query = build_query!("id" => id);
         let game: Game = self
             .oauth
-            .get(&self.identity, "games", query, move |b| {
+            .get(&self.identity(), "games", query, move |b| {
                 let mut body: TwitchData<Game> = serde_json::from_slice(&b)?;
                 match body.data.pop() {
                     Some(game) => Ok(game),
@@ -86,7 +100,7 @@ impl TwitchClient {
             .build();
 
         self.oauth
-            .get(&self.identity, "streams", params, |b| {
+            .get(&self.identity(), "streams", params, |b| {
                 let body: TwitchData<Stream> = serde_json::from_slice(&b)?;
                 Ok(body.data)
             })
@@ -96,7 +110,7 @@ impl TwitchClient {
     pub async fn get_video_by_id(&self, id: String) -> Result<Video, Error> {
         let query = build_query!("id" => id);
         self.oauth
-            .get(&self.identity, "videos", query, move |b| {
+            .get(&self.identity(), "videos", query, move |b| {
                 let mut body: TwitchData<Video> = serde_json::from_slice(&b)?;
                 match body.data.pop() {
                     Some(video) => Ok(video),
@@ -115,7 +129,7 @@ impl TwitchClient {
         );
 
         self.oauth
-            .get(&self.identity, "videos", query, move |b| {
+            .get(&self.identity(), "videos", query, move |b| {
                 let body: TwitchData<Video> = serde_json::from_slice(&b)?;
                 let video = body
                     .data
@@ -146,7 +160,7 @@ impl TwitchClient {
         );
 
         self.oauth
-            .get(&self.identity, "clips", query, move |b| {
+            .get(&self.identity(), "clips", query, move |b| {
                 let body: TwitchData<Clip> = serde_json::from_slice(&b)?;
                 let mut clips = body.data;
                 clips.truncate(num as usize);

@@ -194,7 +194,7 @@ pub struct ClientParams {
 }
 
 /// Client credentials identity according to https://dev.twitch.tv/docs/authentication/getting-tokens-oauth#client-credentials-grant-flow
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct Identity {
     pub access_token: String,
     #[serde(with = "super::expires_at", rename = "expires_in")]
