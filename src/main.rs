@@ -4,16 +4,16 @@ use crate::{
 };
 use config::Config;
 use futures::FutureExt;
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use std::{
     collections::{HashMap, HashSet},
     sync::Arc,
     time::Duration,
 };
-use tokio::{sync::mpsc, time::sleep};
+use tokio::{fs, sync::mpsc, time::sleep};
 use twilight_http::Client;
 use twitch::TwitchClient;
-use watcher::{StreamUpdate, StreamWatcher};
+use watcher::{StreamUpdate, StreamWatcher, WatcherState};
 
 mod config;
 mod discord;
@@ -30,6 +30,15 @@ async fn main() -> Async {
 
     let config: String = tokio::fs::read_to_string("config.json").await?;
     let mut config: Config = serde_json::from_str(&config)?;
+
+    let enable_cache = match tokio::fs::create_dir(".cache").await {
+        Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => true,
+        Err(err) => {
+            warn!("Cannot create directory for system cache: {}", err);
+            false
+        }
+        Ok(_) => true,
+    };
 
     // Discord setup
 
@@ -56,6 +65,12 @@ async fn main() -> Async {
 
     let client = Arc::new(TwitchClient::new(oauth).await?);
 
+    if enable_cache {
+        if let Err(err) = load_cache(&mut watchers, &config, &client, &webhook).await {
+            error!("Could not load cache: {}", err);
+        }
+    }
+
     info!("Listening for streams from {:?}", config.twitch.user_login);
 
     loop {
@@ -80,7 +95,8 @@ async fn main() -> Async {
             if let Some(send) = watchers.get_mut(&name) {
                 push(send, StreamUpdate::Live(Box::new(stream))).await;
             } else {
-                let send = create_watcher(&client, &webhook, &config, &name);
+                let watcher = StreamWatcher::new(name.to_string(), Arc::clone(&config));
+                let send = start_watcher(enable_cache, &client, &webhook, watcher);
                 push(&send, StreamUpdate::Live(Box::new(stream))).await;
                 watchers.insert(name, send);
             }
@@ -105,29 +121,56 @@ async fn main() -> Async {
     }
 }
 
-fn create_watcher(
+fn start_watcher(
+    cache_enabled: bool,
     client: &Arc<TwitchClient>,
     webhook: &Arc<WebhookClient>,
-    config: &Arc<Config>,
-    name: &str,
+    mut watcher: StreamWatcher,
 ) -> mpsc::Sender<StreamUpdate> {
     let (send, mut receive) = mpsc::channel(2);
-    let mut watcher = StreamWatcher::new(name.to_string(), Arc::clone(config));
     let twitch = Arc::clone(client);
     let webhook = Arc::clone(webhook);
     tokio::spawn(async move {
         while let Some(event) = receive.recv().await {
             let result = watcher.update(&twitch, &webhook, event).await;
             match result {
-                Ok(b) if b => {
+                Ok(WatcherState::Ended) => {
                     break;
                 }
                 Err(e) => {
-                    error!("Error when updating stream watcher: {}", e);
+                    error!(
+                        "[{}] Error when updating stream watcher: {}",
+                        watcher.user_name, e
+                    );
                 }
+                Ok(WatcherState::Updated) if cache_enabled => {
+                    // Save the current watcher state to cache file
+                    match serde_json::to_string(&watcher) {
+                        Ok(json) => {
+                            let result = fs::write(
+                                format!(".cache/{}.json", watcher.user_name.to_lowercase()),
+                                json,
+                            )
+                            .await;
+                            if let Err(e) = result {
+                                error!("[{}] Error when writing cache: {}", watcher.user_name, e);
+                            }
+                        }
+                        Err(err) => {
+                            error!(
+                                "[{}] Could not serialize watcher: {}",
+                                watcher.user_name, err
+                            );
+                        }
+                    }
+                },
                 _ => {}
             }
         }
+
+        fs::remove_file(format!(".cache/{}.json", watcher.user_name.to_lowercase()))
+            .await
+            .ok();
         receive.close();
     });
 
@@ -136,4 +179,55 @@ fn create_watcher(
 
 async fn push(s: &mpsc::Sender<StreamUpdate>, event: StreamUpdate) -> bool {
     s.send(event).await.is_err() // err indicates that the watcher is done
+}
+
+async fn load_cache(
+    watchers: &mut HashMap<String, mpsc::Sender<StreamUpdate>>,
+    config: &Arc<Config>,
+    client: &Arc<TwitchClient>,
+    webhook: &Arc<WebhookClient>,
+) -> Async {
+    if let Ok(data) = fs::metadata(".config").await {
+        if !data.is_dir() {
+            error!("Cannot load cache: .config is not a directory");
+            return Ok(());
+        }
+    }
+
+    let mut count = 0;
+    for name in &config.twitch.user_login {
+        let name = name.to_lowercase();
+        let file = fs::read(format!(".cache/{name}.json")).await;
+
+        match file {
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+                debug!("Cache file for {} not found", name);
+            }
+            Err(err) => {
+                error!("Could not load cache file .cache/{name}.json: {}", err)
+            }
+            Ok(data) => {
+                let mut watcher: StreamWatcher = match serde_json::from_slice(&data) {
+                    Ok(w) => w,
+                    Err(e) => {
+                        error!(
+                            "Failed to parse watcher state for watcher {name:?} from cache: {}",
+                            e
+                        );
+                        continue;
+                    }
+                };
+
+                watcher = watcher.set_config(config.clone());
+                let sender = start_watcher(true, client, webhook, watcher);
+                watchers.insert(name, sender);
+                count += 1;
+            }
+        }
+    }
+
+    if count > 0 {
+        info!("Loaded {count} cached stream watchers");
+    }
+    Ok(())
 }

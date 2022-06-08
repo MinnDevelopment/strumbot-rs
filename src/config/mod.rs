@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use errors::InitError;
 use log::{error, info, warn};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use twilight_http::Client;
 use twilight_model::{
     guild::{Guild, Permissions},
@@ -26,7 +26,7 @@ const fn default_true() -> bool {
     true
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct TwitchConfig {
     pub client_id: String,
     pub client_secret: String,
@@ -37,7 +37,7 @@ pub struct TwitchConfig {
     pub offline_grace_period: u8,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct RoleNameConfig {
     #[serde(default)]
     pub live: String,
@@ -47,7 +47,7 @@ pub struct RoleNameConfig {
     pub update: String,
 }
 
-#[derive(Deserialize, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, PartialEq, Eq)]
 pub enum EventName {
     #[serde(rename = "live")]
     Live,
@@ -57,10 +57,10 @@ pub enum EventName {
     Update,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct DiscordConfig {
     pub token: String,
-    #[serde(rename = "server_id")]
+    #[serde(rename = "server_id", skip_serializing_if = "Option::is_none")]
     pub guild_id: Option<String>,
     pub stream_notifications: String,
     // pub logging: Option<String>,
@@ -71,7 +71,7 @@ pub struct DiscordConfig {
     pub enabled_events: Vec<EventName>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Config {
     pub twitch: TwitchConfig,
     pub discord: DiscordConfig,

@@ -1,7 +1,11 @@
-use std::{sync::Arc, time::Duration, time::Instant};
+use std::{
+    sync::Arc,
+    time::{Duration, SystemTime},
+};
 
 use eos::DateTime;
 use log::{error, info};
+use serde::{Deserialize, Serialize};
 use twilight_model::http::attachment::Attachment;
 use twilight_util::builder::embed::{
     EmbedAuthorBuilder, EmbedBuilder, EmbedFieldBuilder, ImageSource,
@@ -22,6 +26,7 @@ const fn split_duration(dur: &Duration) -> (u8, u8, u8) {
     (hour as u8, mins as u8, secs as u8)
 }
 
+#[derive(Deserialize, Serialize)]
 struct StreamSegment {
     game: Game,
     timestamp: Duration,
@@ -70,13 +75,20 @@ pub enum StreamUpdate {
     Offline,
 }
 
+pub enum WatcherState {
+    Unchanged,
+    Ended,
+    Updated
+}
+
+#[derive(Deserialize, Serialize)]
 pub struct StreamWatcher {
-    user_name: String,
+    pub user_name: String,
     user_id: String,
     config: Arc<Config>,
     segments: Vec<StreamSegment>,
     start_timestamp: DateTime,
-    offline_timestamp: Option<Instant>,
+    offline_timestamp: Option<SystemTime>, // TODO: Replace with eos type
 }
 
 impl StreamWatcher {
@@ -91,25 +103,37 @@ impl StreamWatcher {
         }
     }
 
+    pub fn set_config(mut self, config: Arc<Config>) -> Self {
+        self.config = config;
+        self
+    }
+
     pub async fn update(
         &mut self,
         client: &Arc<TwitchClient>,
         webhook: &Arc<WebhookClient>,
         stream: StreamUpdate,
-    ) -> Result<bool, Error> {
+    ) -> Result<WatcherState, Error> {
         match stream {
             StreamUpdate::Live(stream) if self.segments.is_empty() => {
                 self.on_go_live(client, webhook, *stream).await?;
-                Ok(false)
+                Ok(WatcherState::Updated)
             }
             StreamUpdate::Live(stream) => {
-                self.on_update(client, webhook, *stream).await?;
-                Ok(false)
+                if self.on_update(client, webhook, *stream).await? {
+                    Ok(WatcherState::Updated)
+                } else {
+                    Ok(WatcherState::Unchanged)
+                }
             }
             StreamUpdate::Offline if !self.segments.is_empty() => {
-                self.on_offline(client, webhook).await // returns Ok(true) if ended
+                if self.on_offline(client, webhook).await? {
+                    Ok(WatcherState::Ended)
+                } else {
+                    Ok(WatcherState::Updated)
+                }
             }
-            _ => Ok(false),
+            _ => Ok(WatcherState::Unchanged),
         }
     }
 
@@ -161,10 +185,10 @@ impl StreamWatcher {
         client: &Arc<TwitchClient>,
         webhook: &Arc<WebhookClient>,
         stream: Stream,
-    ) -> Result<(), Error> {
+    ) -> Result<bool, Error> {
         self.offline_timestamp = None;
         let old_game = match self.segments.last() {
-            Some(seg) if seg.game.id == stream.game_id => return Ok(()),
+            Some(seg) if seg.game.id == stream.game_id => return Ok(false),
             Some(seg) => seg.game.clone(), // have to clone so the borrow isn't an issue later
             None => {
                 panic!("Impossible situation encountered. Stream game update without being live?")
@@ -178,7 +202,7 @@ impl StreamWatcher {
         );
 
         if self.is_skipped(EventName::Update) {
-            return Ok(());
+            return Ok(true);
         }
 
         let mention = self.get_mention("update");
@@ -212,7 +236,7 @@ impl StreamWatcher {
                 err, embed
             );
         }
-        Ok(())
+        Ok(true)
     }
 
     async fn on_offline(
@@ -223,13 +247,13 @@ impl StreamWatcher {
         // Check if the offline grace period is over (usually 2 minutes)
         match self.offline_timestamp {
             None => {
-                let offset: Duration =
+                let offset =
                     Duration::from_secs(60 * self.config.twitch.offline_grace_period as u64);
-                self.offline_timestamp = Some(Instant::now() + offset);
+                self.offline_timestamp = Some(SystemTime::now() + offset);
                 return Ok(false);
             }
             Some(instant) => {
-                if instant > Instant::now() {
+                if instant > SystemTime::now() {
                     return Ok(false);
                 }
             }
