@@ -1,8 +1,7 @@
-use lazy_static::lazy_static;
-
 use eos::fmt::{format_spec, FormatSpec};
 use log::{info, warn};
 use lru::LruCache;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{
     sync::Mutex,
@@ -58,9 +57,7 @@ impl TwitchClient {
     }
 
     pub async fn get_game_by_id(&self, id: String) -> Result<Game, RequestError> {
-        lazy_static! {
-            static ref EMPTY_GAME: Game = Game::empty();
-        }
+        static EMPTY_GAME: Lazy<Game> = Lazy::new(Game::empty);
 
         if id.is_empty() {
             return Ok(EMPTY_GAME.clone());
@@ -169,10 +166,8 @@ impl TwitchClient {
     }
 
     pub async fn get_thumbnail(&self, url: &str) -> Result<Vec<u8>, RequestError> {
-        lazy_static! {
-            static ref W: Regex = Regex::new(r"%?\{width\}").unwrap();
-            static ref H: Regex = Regex::new(r"%?\{height\}").unwrap();
-        }
+        static W: Lazy<Regex> = Lazy::new(|| Regex::new(r"%?\{width\}").unwrap());
+        static H: Lazy<Regex> = Lazy::new(|| Regex::new(r"%?\{height\}").unwrap());
 
         let full_url = H.replace(&W.replace(url, "1920"), "1080").to_string()
             + format!("?t={}", DateTime::utc_now().timestamp().as_seconds()).as_str();

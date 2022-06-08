@@ -97,6 +97,9 @@ impl OauthClient {
                 Err(err) if err.is_timeout() => {
                     warn!("Request timeout: {}", err);
                 }
+                Err(err) if err.is_request() => {
+                    warn!("Request error: {}", err);
+                }
                 Err(err) => {
                     error!("Request failed unexpectedly: {}", err);
                     return Err(RequestError::from(err));
@@ -185,6 +188,9 @@ impl OauthClient {
                 }
                 Err(err) if err.is_timeout() => {
                     warn!("Request timeout: {}", err);
+                }
+                Err(err) if err.is_request() => {
+                    warn!("Request error: {}", err);
                 }
                 Err(err) => {
                     error!("Request failed unexpectedly: {}", err);

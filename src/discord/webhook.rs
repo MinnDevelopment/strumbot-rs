@@ -1,4 +1,4 @@
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{error::Error, fmt::Display, str::FromStr};
 use twilight_http::{request::channel::webhook::ExecuteWebhook, Client};
@@ -47,11 +47,9 @@ impl FromStr for WebhookParams {
     type Err = Box<dyn Error + Send + Sync>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        lazy_static! {
-            static ref REGEX: Regex =
-                Regex::new(r"^https?://(?:\w+\.)?discord.com/api/webhooks/(\d+)/([\w-]+)$")
-                    .unwrap();
-        }
+        static REGEX: Lazy<Regex> = Lazy::new(|| {
+            Regex::new(r"^https?://(?:\w+\.)?discord.com/api/webhooks/(\d+)/([\w-]+)$").unwrap()
+        });
 
         if let Some(captures) = REGEX.captures(s) {
             // We can use unwrap here because the regex is well defined and constant
