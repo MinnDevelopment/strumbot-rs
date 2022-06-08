@@ -88,13 +88,7 @@ impl Config {
         let guild = if let Some(ref id) = self.discord.guild_id {
             Self::get_guild(client, id.parse()?).await?
         } else {
-            let guilds = client
-                .current_user_guilds()
-                .limit(2)?
-                .exec()
-                .await?
-                .models()
-                .await?;
+            let guilds = client.current_user_guilds().limit(2)?.exec().await?.models().await?;
             match guilds[..] {
                 [ref guild] => Self::get_guild(client, guild.id).await?,
                 [] => return Err(Box::new(InitError::NoGuilds)),

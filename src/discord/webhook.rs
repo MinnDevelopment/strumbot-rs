@@ -47,18 +47,14 @@ impl FromStr for WebhookParams {
     type Err = Box<dyn Error + Send + Sync>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        static REGEX: Lazy<Regex> = Lazy::new(|| {
-            Regex::new(r"^https?://(?:\w+\.)?discord.com/api/webhooks/(\d+)/([\w-]+)$").unwrap()
-        });
+        static REGEX: Lazy<Regex> =
+            Lazy::new(|| Regex::new(r"^https?://(?:\w+\.)?discord.com/api/webhooks/(\d+)/([\w-]+)$").unwrap());
 
         if let Some(captures) = REGEX.captures(s) {
             // We can use unwrap here because the regex is well defined and constant
             let id = captures.get(1).unwrap().as_str().parse::<u64>()?;
             let token = captures.get(2).unwrap().as_str().to_string();
-            Ok(WebhookParams {
-                id: Id::new(id),
-                token,
-            })
+            Ok(WebhookParams { id: Id::new(id), token })
         } else {
             Err(Box::new(ParseError {
                 regex: &REGEX,

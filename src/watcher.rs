@@ -7,9 +7,7 @@ use eos::DateTime;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use twilight_model::http::attachment::Attachment;
-use twilight_util::builder::embed::{
-    EmbedAuthorBuilder, EmbedBuilder, EmbedFieldBuilder, ImageSource,
-};
+use twilight_util::builder::embed::{EmbedAuthorBuilder, EmbedBuilder, EmbedFieldBuilder, ImageSource};
 
 use crate::{
     config::{Config, EventName},
@@ -78,7 +76,7 @@ pub enum StreamUpdate {
 pub enum WatcherState {
     Unchanged,
     Ended,
-    Updated
+    Updated,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -172,10 +170,7 @@ impl StreamWatcher {
 
         let embed = embed.build();
         if let Err(err) = request.embeds(&[embed.clone()])?.exec().await {
-            error!(
-                "Failed to send live event embed: {}\nEmbed: {:?}",
-                err, embed
-            );
+            error!("Failed to send live event embed: {}\nEmbed: {:?}", err, embed);
         }
         Ok(())
     }
@@ -213,10 +208,7 @@ impl StreamWatcher {
             }
             _ => embed,
         };
-        let content = format!(
-            "{} {} switched game to **{}**!",
-            mention, stream.user_name, game.name
-        );
+        let content = format!("{} {} switched game to **{}**!", mention, stream.user_name, game.name);
 
         let mut request = webhook.send_message().content(&content)?;
 
@@ -231,24 +223,16 @@ impl StreamWatcher {
 
         let embed = embed.build();
         if let Err(err) = request.embeds(&[embed.clone()])?.exec().await {
-            error!(
-                "Failed to send update event embed: {}\nEmbed: {:?}",
-                err, embed
-            );
+            error!("Failed to send update event embed: {}\nEmbed: {:?}", err, embed);
         }
         Ok(true)
     }
 
-    async fn on_offline(
-        &mut self,
-        client: &Arc<TwitchClient>,
-        webhook: &Arc<WebhookClient>,
-    ) -> Result<bool, Error> {
+    async fn on_offline(&mut self, client: &Arc<TwitchClient>, webhook: &Arc<WebhookClient>) -> Result<bool, Error> {
         // Check if the offline grace period is over (usually 2 minutes)
         match self.offline_timestamp {
             None => {
-                let offset =
-                    Duration::from_secs(60 * self.config.twitch.offline_grace_period as u64);
+                let offset = Duration::from_secs(60 * self.config.twitch.offline_grace_period as u64);
                 self.offline_timestamp = Some(SystemTime::now() + offset);
                 return Ok(false);
             }
@@ -363,20 +347,13 @@ impl StreamWatcher {
 
         let embed = embed.build();
         if let Err(err) = request.embeds(&[embed.clone()])?.exec().await {
-            error!(
-                "Failed to send vod event embed: {}\nEmbed: {:?}",
-                err, embed
-            );
+            error!("Failed to send vod event embed: {}\nEmbed: {:?}", err, embed);
         }
         Ok(true)
     }
 
     #[inline]
-    async fn add_segment(
-        &mut self,
-        client: &Arc<TwitchClient>,
-        stream: &Stream,
-    ) -> Result<Game, RequestError> {
+    async fn add_segment(&mut self, client: &Arc<TwitchClient>, stream: &Stream) -> Result<Game, RequestError> {
         let game = match stream.get_game(client).await {
             Ok(g) => g,
             Err(RequestError::Deserialize(e)) => {
@@ -387,8 +364,7 @@ impl StreamWatcher {
             err => return err,
         };
 
-        self.segments
-            .push(StreamSegment::from(client, stream, &game).await);
+        self.segments.push(StreamSegment::from(client, stream, &game).await);
         Ok(game)
     }
 

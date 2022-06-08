@@ -76,17 +76,10 @@ async fn main() -> Async {
     loop {
         debug!("Fetching streams {:?}", config.twitch.user_login);
         // 1. Fetch streams in batch
-        let streams = client
-            .get_streams_by_login(&config.twitch.user_login)
-            .await?;
+        let streams = client.get_streams_by_login(&config.twitch.user_login).await?;
 
         // 2. Check which streams are offline/missing
-        let mut offline: HashSet<String> = config
-            .twitch
-            .user_login
-            .iter()
-            .map(|s| s.to_lowercase())
-            .collect();
+        let mut offline: HashSet<String> = config.twitch.user_login.iter().map(|s| s.to_lowercase()).collect();
 
         // 3. Send updates for all currently live streams
         for stream in streams {
@@ -114,10 +107,7 @@ async fn main() -> Async {
         }
 
         // 5. Refresh oauth token if needed and wait 10 seconds for next poll event
-        tokio::try_join!(
-            client.refresh_auth(),
-            sleep(Duration::from_secs(10)).map(Result::Ok)
-        )?;
+        tokio::try_join!(client.refresh_auth(), sleep(Duration::from_secs(10)).map(Result::Ok))?;
     }
 }
 
@@ -138,32 +128,23 @@ fn start_watcher(
                     break;
                 }
                 Err(e) => {
-                    error!(
-                        "[{}] Error when updating stream watcher: {}",
-                        watcher.user_name, e
-                    );
+                    error!("[{}] Error when updating stream watcher: {}", watcher.user_name, e);
                 }
                 Ok(WatcherState::Updated) if cache_enabled => {
                     // Save the current watcher state to cache file
                     match serde_json::to_string(&watcher) {
                         Ok(json) => {
-                            let result = fs::write(
-                                format!(".cache/{}.json", watcher.user_name.to_lowercase()),
-                                json,
-                            )
-                            .await;
+                            let result =
+                                fs::write(format!(".cache/{}.json", watcher.user_name.to_lowercase()), json).await;
                             if let Err(e) = result {
                                 error!("[{}] Error when writing cache: {}", watcher.user_name, e);
                             }
                         }
                         Err(err) => {
-                            error!(
-                                "[{}] Could not serialize watcher: {}",
-                                watcher.user_name, err
-                            );
+                            error!("[{}] Could not serialize watcher: {}", watcher.user_name, err);
                         }
                     }
-                },
+                }
                 _ => {}
             }
         }
@@ -210,10 +191,7 @@ async fn load_cache(
                 let mut watcher: StreamWatcher = match serde_json::from_slice(&data) {
                     Ok(w) => w,
                     Err(e) => {
-                        error!(
-                            "Failed to parse watcher state for watcher {name:?} from cache: {}",
-                            e
-                        );
+                        error!("Failed to parse watcher state for watcher {name:?} from cache: {}", e);
                         continue;
                     }
                 };

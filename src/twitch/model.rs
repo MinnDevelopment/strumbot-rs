@@ -59,10 +59,7 @@ impl<'de> Deserialize<'de> for VideoType {
             "archive" => Ok(VideoType::Archive),
             "upload" => Ok(VideoType::Upload),
             "highlight" => Ok(VideoType::Highlight),
-            _ => Err(serde::de::Error::custom(format!(
-                "Unknown video type: {}",
-                s
-            ))),
+            _ => Err(serde::de::Error::custom(format!("Unknown video type: {}", s))),
         }
     }
 }

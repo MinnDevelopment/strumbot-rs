@@ -87,10 +87,7 @@ impl TwitchClient {
         }))
     }
 
-    pub async fn get_streams_by_login(
-        &self,
-        user_login: &[String],
-    ) -> Result<Vec<Stream>, RequestError> {
+    pub async fn get_streams_by_login(&self, user_login: &[String]) -> Result<Vec<Stream>, RequestError> {
         let params = user_login
             .iter()
             .fold(QueryParams::builder(), |query, login| {
@@ -178,10 +175,7 @@ impl TwitchClient {
         if response.status().is_success() {
             Ok(response.bytes().await?.as_ref().to_vec())
         } else if response.status().as_u16() == 404 {
-            Err(RequestError::NotFound(
-                "Thumbnail".to_string(),
-                url.to_string(),
-            ))
+            Err(RequestError::NotFound("Thumbnail".to_string(), url.to_string()))
         } else {
             Err(RequestError::Unexpected(
                 response.error_for_status().unwrap_err().into(),

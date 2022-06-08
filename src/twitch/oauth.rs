@@ -164,10 +164,7 @@ impl OauthClient {
                     if let Some(header) = res.headers().get("Retry-After") {
                         match header.to_str()?.parse() {
                             Ok(retry_after) => {
-                                warn!(
-                                    "Rate limit exceeded, retrying in {} seconds...",
-                                    retry_after
-                                );
+                                warn!("Rate limit exceeded, retrying in {} seconds...", retry_after);
                                 tokio::time::sleep(Duration::from_secs(retry_after)).await;
                                 continue;
                             }
