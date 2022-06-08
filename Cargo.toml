@@ -37,3 +37,8 @@ features = ["json"]
 [dependencies.eos]
 features = ["alloc", "parsing", "serde", "macros"]
 git = "https://github.com/Rapptz/eos"
+
+[profile.release]
+strip = true
+incremental = true
+overflow-checks = false
