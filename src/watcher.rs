@@ -16,8 +16,7 @@ use crate::{
     twitch::{Game, Stream, TwitchClient},
 };
 
-const fn split_duration(dur: &Duration) -> (u8, u8, u8) {
-    let secs = dur.as_secs();
+const fn split_duration(secs: u32) -> (u8, u8, u8) {
     let hour = (secs / 3600) % 60;
     let mins = (secs / 60) % 60;
     let secs = secs % 60;
@@ -27,13 +26,13 @@ const fn split_duration(dur: &Duration) -> (u8, u8, u8) {
 #[derive(Deserialize, Serialize)]
 struct StreamSegment {
     game: Game,
-    timestamp: Duration,
+    position: u32,
     video_id: String,
 }
 
 impl StreamSegment {
     async fn from(client: &Arc<TwitchClient>, stream: &Stream, game: &Game) -> Self {
-        let duration = eos::DateTime::utc_now().duration_since(&stream.started_at);
+        let position = eos::DateTime::utc_now().duration_since(&stream.started_at).as_secs() as u32;
         let video_id = match stream.get_video(client).await {
             Ok(v) => v.id,
             Err(e) => {
@@ -44,7 +43,7 @@ impl StreamSegment {
 
         Self {
             game: game.clone(),
-            timestamp: duration,
+            position,
             video_id,
         }
     }
@@ -54,7 +53,7 @@ impl StreamSegment {
     }
 
     fn vod_link(&self) -> String {
-        let (hour, min, sec) = split_duration(&self.timestamp);
+        let (hour, min, sec) = split_duration(self.position);
         let display = format!("`{hour:02}:{min:02}:{sec:02}`");
         if self.video_id.is_empty() {
             // Don't link a VOD if there is no video ID (deleted vod or streamer forgot to enable it or twitch being twitch)
