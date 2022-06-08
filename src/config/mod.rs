@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use errors::InitError;
 use log::{error, info, warn};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use twilight_http::Client;
 use twilight_model::{
     guild::{Guild, Permissions},
@@ -26,7 +26,7 @@ const fn default_true() -> bool {
     true
 }
 
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Deserialize, Default)]
 pub struct TwitchConfig {
     pub client_id: String,
     pub client_secret: String,
@@ -37,7 +37,7 @@ pub struct TwitchConfig {
     pub offline_grace_period: u8,
 }
 
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Deserialize, Default)]
 pub struct RoleNameConfig {
     #[serde(default)]
     pub live: String,
@@ -47,7 +47,7 @@ pub struct RoleNameConfig {
     pub update: String,
 }
 
-#[derive(Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Deserialize, PartialEq, Eq)]
 pub enum EventName {
     #[serde(rename = "live")]
     Live,
@@ -57,7 +57,7 @@ pub enum EventName {
     Update,
 }
 
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Deserialize, Default)]
 pub struct DiscordConfig {
     pub token: String,
     #[serde(rename = "server_id", skip_serializing_if = "Option::is_none")]
@@ -71,7 +71,7 @@ pub struct DiscordConfig {
     pub enabled_events: Vec<EventName>,
 }
 
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Deserialize, Default)]
 pub struct Config {
     pub twitch: TwitchConfig,
     pub discord: DiscordConfig,
@@ -163,37 +163,33 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_twitch_config_from_str() {
-        let config: TwitchConfig = serde_json::from_str(
-            r#"{
-                "client_id": "some client id",
-                "client_secret": "some client secret",
-                "user_login": ["some user login"],
-                "top_clips": 5,
-                "offline_grace_period": 1
-            }"#,
-        )
-        .unwrap();
+    fn test_config_parse() {
+        let file = std::fs::read("example-config.json").unwrap();
+        let Config {
+            twitch,
+            discord,
+            role_map: _,
+        } = serde_json::from_slice(&file).unwrap();
 
-        assert_eq!(config.client_id, "some client id");
-        assert_eq!(config.client_secret, "some client secret");
-        assert_eq!(config.user_login, vec!["some user login"]);
-        assert_eq!(config.top_clips, 5);
-        assert_eq!(config.offline_grace_period, 1);
+        assert_eq!(twitch.client_id, "tRSXhpTsLQtWiI7Az7HNjmFna10XTdmi");
+        assert_eq!(twitch.client_secret, "BJW8uMosDo02LcdU25u8dC95YTVBVZmy");
+        assert_eq!(twitch.user_login, vec!["Elajjaz", "distortion2"]);
+        assert_eq!(twitch.top_clips, 5);
+        assert_eq!(twitch.offline_grace_period, 2);
 
-        let config: TwitchConfig = serde_json::from_str(
-            r#"{
-                "client_id": "some client id",
-                "client_secret": "some client secret",
-                "user_login": ["some user login"]
-            }"#,
-        )
-        .unwrap();
+        assert_eq!(discord.guild_id, Some("81384788765712384".into()));
+        assert_eq!(
+            discord.token,
+            "MzgwNDY1NTU1MzU1OTkyMDcw.GDPnv6.FC4xX7mQn3rPV-MkiVboQPWHrv88u4y5aS9NGc"
+        );
+        assert_eq!(discord.stream_notifications, "https://canary.discord.com/api/webhooks/983342910521090131/6iwWTd-VHL7yzlJ_W1SWagLBVtTbJK8NhlMFpnjkibU5UYqjC0KgfDrTPdxUC7fdSJlD");
+        assert!(discord.enabled_events.contains(&EventName::Live));
+        assert!(discord.enabled_events.contains(&EventName::Update));
+        assert!(discord.enabled_events.contains(&EventName::Vod));
 
-        assert_eq!(config.client_id, "some client id");
-        assert_eq!(config.client_secret, "some client secret");
-        assert_eq!(config.user_login, vec!["some user login"]);
-        assert_eq!(config.top_clips, 0);
-        assert_eq!(config.offline_grace_period, 2);
+        let role_names = discord.role_name;
+        assert_eq!(role_names.live, "live");
+        assert_eq!(role_names.update, "new game");
+        assert_eq!(role_names.vod, "");
     }
 }

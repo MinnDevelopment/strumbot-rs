@@ -63,3 +63,24 @@ impl FromStr for WebhookParams {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_webhook_params() {
+        let params: WebhookParams = "https://canary.discord.com/api/webhooks/983342910521090131/6iwWTd-VHL7yzlJ_W1SWagLBVtTbJK8NhlMFpnjkibU5UYqjC0KgfDrTPdxUC7fdSJlD".parse().unwrap();
+        assert_eq!(params.id, Id::new(983342910521090131));
+        assert_eq!(
+            params.token,
+            "6iwWTd-VHL7yzlJ_W1SWagLBVtTbJK8NhlMFpnjkibU5UYqjC0KgfDrTPdxUC7fdSJlD"
+        );
+    }
+
+    #[test]
+    fn test_parse_webhook_params_invalid() {
+        let params = WebhookParams::from_str("invalid url https://canary.discord.com/api/webhooks/983342910521090131/6iwWTd-VHL7yzlJ_W1SWagLBVtTbJK8NhlMFpnjkibU5UYqjC0KgfDrTPdxUC7fdSJlD");
+        assert!(params.is_err());
+    }
+}
