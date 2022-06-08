@@ -7,7 +7,6 @@ use futures::FutureExt;
 use log::{debug, error, info};
 use std::{
     collections::{HashMap, HashSet},
-    error::Error,
     sync::Arc,
     time::Duration,
 };
@@ -18,12 +17,12 @@ use watcher::{StreamUpdate, StreamWatcher};
 
 mod config;
 mod discord;
+mod error;
 mod twitch;
 mod util;
 mod watcher;
 
-pub type AsyncError = Box<dyn Error + Send + Sync>;
-type Async = Result<(), AsyncError>;
+type Async = Result<(), error::AsyncError>;
 
 #[tokio::main]
 async fn main() -> Async {

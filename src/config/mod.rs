@@ -9,7 +9,7 @@ use twilight_model::{
     id::{marker::GuildMarker, Id},
 };
 
-use crate::twitch::Error;
+use crate::error::AsyncError as Error;
 use crate::util::ResponseResolve;
 
 pub mod errors;

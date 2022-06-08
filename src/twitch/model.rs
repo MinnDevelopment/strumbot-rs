@@ -1,6 +1,7 @@
 use serde::Deserialize;
 
 use super::TwitchClient;
+use crate::error::RequestError;
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct Game {
@@ -134,11 +135,11 @@ pub struct Stream {
 }
 
 impl Stream {
-    pub async fn get_game(&self, client: &TwitchClient) -> Result<Game, super::Error> {
+    pub async fn get_game(&self, client: &TwitchClient) -> Result<Game, RequestError> {
         client.get_game_by_id(self.game_id.clone()).await
     }
 
-    pub async fn get_video(&self, client: &TwitchClient) -> Result<Video, super::Error> {
+    pub async fn get_video(&self, client: &TwitchClient) -> Result<Video, RequestError> {
         client.get_video_by_stream(self).await
     }
 

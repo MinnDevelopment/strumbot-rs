@@ -10,7 +10,8 @@ use twilight_util::builder::embed::{
 use crate::{
     config::{Config, EventName},
     discord::WebhookClient,
-    twitch::{Error, Game, Stream, TwitchClient},
+    error::{AsyncError as Error, RequestError},
+    twitch::{Game, Stream, TwitchClient},
 };
 
 const fn split_duration(dur: &Duration) -> (u8, u8, u8) {
@@ -28,18 +29,21 @@ struct StreamSegment {
 }
 
 impl StreamSegment {
-    async fn from(client: &Arc<TwitchClient>, stream: &Stream, game: &Game) -> Result<Self, Error> {
+    async fn from(client: &Arc<TwitchClient>, stream: &Stream, game: &Game) -> Self {
         let duration = eos::DateTime::utc_now().duration_since(&stream.started_at);
-        Ok(Self {
+        let video_id = match stream.get_video(client).await {
+            Ok(v) => v.id,
+            Err(e) => {
+                error!("Failed to get video for stream: {}", e);
+                "".to_string()
+            }
+        };
+
+        Self {
             game: game.clone(),
             timestamp: duration,
-            video_id: stream
-                .get_video(client)
-                .await
-                .ok()
-                .map(|v| v.id)
-                .unwrap_or_default(),
-        })
+            video_id,
+        }
     }
 
     fn video_url(&self) -> String {
@@ -348,13 +352,19 @@ impl StreamWatcher {
         &mut self,
         client: &Arc<TwitchClient>,
         stream: &Stream,
-    ) -> Result<Game, Error> {
-        let game = stream
-            .get_game(client)
-            .await
-            .unwrap_or_else(|_| Game::empty());
+    ) -> Result<Game, RequestError> {
+        let game = match stream.get_game(client).await {
+            Ok(g) => g,
+            Err(RequestError::Deserialize(e)) => {
+                error!("Failed to deserialize game: {}", e);
+                Game::empty()
+            }
+            Err(RequestError::NotFound(_, _)) => Game::empty(),
+            err => return err,
+        };
+
         self.segments
-            .push(StreamSegment::from(client, stream, &game).await?);
+            .push(StreamSegment::from(client, stream, &game).await);
         Ok(game)
     }
 

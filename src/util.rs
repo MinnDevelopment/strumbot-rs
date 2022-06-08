@@ -1,4 +1,4 @@
-use crate::AsyncError as Error;
+use crate::error::AsyncError as Error;
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use std::sync::Mutex;

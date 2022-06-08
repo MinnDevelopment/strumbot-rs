@@ -3,7 +3,6 @@ use lazy_static::lazy_static;
 use eos::fmt::{format_spec, FormatSpec};
 use log::{info, warn};
 use lru::LruCache;
-use oauth::QueryParams;
 use regex::Regex;
 use std::{
     sync::Mutex,
@@ -11,23 +10,23 @@ use std::{
 };
 
 use super::{
-    error::AuthorizationError, error::TwitchError, oauth, Clip, Error, Game, Stream, TwitchData,
-    Video, VideoType,
+    oauth::{Identity, OauthClient, QueryParams},
+    Clip, Game, Stream, TwitchData, Video, VideoType,
 };
-use crate::{twitch::oauth::Identity, util::locked};
+use crate::{error::RequestError, util::locked};
 
 type DateTime = eos::DateTime<eos::Utc>;
 
 const RFC3339: [FormatSpec<'static>; 12] = format_spec!("%Y-%m-%dT%H:%M:%SZ");
 
 pub struct TwitchClient {
-    oauth: oauth::OauthClient,
-    identity: Mutex<oauth::Identity>,
+    oauth: OauthClient,
+    identity: Mutex<Identity>,
     games_cache: Mutex<LruCache<String, Game>>,
 }
 
 impl TwitchClient {
-    fn identity(&self) -> oauth::Identity {
+    fn identity(&self) -> Identity {
         match self.identity.lock() {
             Ok(it) => it.clone(),
             Err(poison) => {
@@ -38,7 +37,7 @@ impl TwitchClient {
         }
     }
 
-    pub async fn new(oauth: oauth::OauthClient) -> Result<TwitchClient, AuthorizationError> {
+    pub async fn new(oauth: OauthClient) -> Result<TwitchClient, RequestError> {
         let identity = oauth.authorize().await?;
         Ok(Self {
             oauth,
@@ -47,7 +46,7 @@ impl TwitchClient {
         })
     }
 
-    pub async fn refresh_auth(&self) -> Result<(), AuthorizationError> {
+    pub async fn refresh_auth(&self) -> Result<(), RequestError> {
         let identity = self.identity();
         if identity.expires_at < Instant::now() + Duration::from_secs(600) {
             info!("Refreshing oauth token...");
@@ -58,7 +57,7 @@ impl TwitchClient {
         Ok(())
     }
 
-    pub async fn get_game_by_id(&self, id: String) -> Result<Game, Error> {
+    pub async fn get_game_by_id(&self, id: String) -> Result<Game, RequestError> {
         lazy_static! {
             static ref EMPTY_GAME: Game = Game::empty();
         }
@@ -80,7 +79,7 @@ impl TwitchClient {
                 let mut body: TwitchData<Game> = serde_json::from_slice(&b)?;
                 match body.data.pop() {
                     Some(game) => Ok(game),
-                    None => Err(Box::new(TwitchError::NotFound("Game".to_string(), id))),
+                    None => Err(RequestError::NotFound("Game".to_string(), id)),
                 }
             })
             .await?;
@@ -91,7 +90,10 @@ impl TwitchClient {
         }))
     }
 
-    pub async fn get_streams_by_login(&self, user_login: &[String]) -> Result<Vec<Stream>, Error> {
+    pub async fn get_streams_by_login(
+        &self,
+        user_login: &[String],
+    ) -> Result<Vec<Stream>, RequestError> {
         let params = user_login
             .iter()
             .fold(QueryParams::builder(), |query, login| {
@@ -107,20 +109,20 @@ impl TwitchClient {
             .await
     }
 
-    pub async fn get_video_by_id(&self, id: String) -> Result<Video, Error> {
+    pub async fn get_video_by_id(&self, id: String) -> Result<Video, RequestError> {
         let query = build_query!("id" => id);
         self.oauth
             .get(&self.identity(), "videos", query, move |b| {
                 let mut body: TwitchData<Video> = serde_json::from_slice(&b)?;
                 match body.data.pop() {
                     Some(video) => Ok(video),
-                    None => Err(Box::new(TwitchError::NotFound("Video".to_string(), id))),
+                    None => Err(RequestError::NotFound("Video".to_string(), id)),
                 }
             })
             .await
     }
 
-    pub async fn get_video_by_stream(&self, stream: &Stream) -> Result<Video, Error> {
+    pub async fn get_video_by_stream(&self, stream: &Stream) -> Result<Video, RequestError> {
         let user_id = stream.user_id.clone();
         let query = build_query!(
             "type" => "archive",
@@ -138,10 +140,7 @@ impl TwitchClient {
                     .find(|v| v.created_at >= stream.started_at); // video goes up after stream started
                 match video {
                     Some(video) => Ok(video),
-                    None => Err(Box::new(TwitchError::NotFound(
-                        "Video".to_string(),
-                        user_id,
-                    ))),
+                    None => Err(RequestError::NotFound("Video".to_string(), user_id)),
                 }
             })
             .await
@@ -152,7 +151,7 @@ impl TwitchClient {
         user_id: String,
         started_at: &DateTime,
         num: u8,
-    ) -> Result<Vec<Clip>, Error> {
+    ) -> Result<Vec<Clip>, RequestError> {
         let query = build_query!(
             "first" => "100", // twitch filters *after* limiting the number. we need to just get max and then filter
             "broadcaster_id" => user_id,
@@ -169,7 +168,7 @@ impl TwitchClient {
             .await
     }
 
-    pub async fn get_thumbnail(&self, url: &str) -> Result<Vec<u8>, Error> {
+    pub async fn get_thumbnail(&self, url: &str) -> Result<Vec<u8>, RequestError> {
         lazy_static! {
             static ref W: Regex = Regex::new(r"%?\{width\}").unwrap();
             static ref H: Regex = Regex::new(r"%?\{height\}").unwrap();
@@ -184,12 +183,14 @@ impl TwitchClient {
         if response.status().is_success() {
             Ok(response.bytes().await?.as_ref().to_vec())
         } else if response.status().as_u16() == 404 {
-            Err(Box::new(TwitchError::NotFound(
+            Err(RequestError::NotFound(
                 "Thumbnail".to_string(),
                 url.to_string(),
-            )))
+            ))
         } else {
-            Err(Box::new(response.error_for_status().unwrap_err()))
+            Err(RequestError::Unexpected(
+                response.error_for_status().unwrap_err().into(),
+            ))
         }
     }
 }

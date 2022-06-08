@@ -1,13 +1,10 @@
 pub use client::TwitchClient;
 pub use model::*;
 
-pub mod error;
 pub mod model;
 #[macro_use]
 pub mod oauth;
 pub mod client;
-
-pub type Error = Box<dyn std::error::Error + Send + Sync>;
 
 // Serde deserialization into Instant
 pub(crate) mod expires_at {
