@@ -26,7 +26,7 @@ const fn default_true() -> bool {
     true
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct TwitchConfig {
     pub client_id: String,
     pub client_secret: String,
@@ -57,7 +57,7 @@ pub enum EventName {
     Update,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct DiscordConfig {
     pub token: String,
     #[serde(rename = "server_id", skip_serializing_if = "Option::is_none")]
@@ -71,7 +71,7 @@ pub struct DiscordConfig {
     pub enabled_events: Vec<EventName>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Default)]
 pub struct Config {
     pub twitch: TwitchConfig,
     pub discord: DiscordConfig,

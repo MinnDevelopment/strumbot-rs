@@ -1,7 +1,4 @@
-use std::{
-    sync::Arc,
-    time::{Duration, SystemTime},
-};
+use std::{num::NonZeroU64, sync::Arc};
 
 use eos::DateTime;
 use log::{error, info};
@@ -14,6 +11,7 @@ use crate::{
     discord::WebhookClient,
     error::{AsyncError as Error, RequestError},
     twitch::{Game, Stream, TwitchClient},
+    util::{now_unix, plus},
 };
 
 const fn split_duration(secs: u32) -> (u8, u8, u8) {
@@ -82,10 +80,12 @@ pub enum WatcherState {
 pub struct StreamWatcher {
     pub user_name: String,
     user_id: String,
-    config: Arc<Config>,
     segments: Vec<StreamSegment>,
     start_timestamp: DateTime,
-    offline_timestamp: Option<SystemTime>, // TODO: Replace with eos type
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    offline_timestamp: Option<NonZeroU64>,
+    #[serde(default, skip)]
+    config: Arc<Config>,
 }
 
 impl StreamWatcher {
@@ -231,12 +231,12 @@ impl StreamWatcher {
         // Check if the offline grace period is over (usually 2 minutes)
         match self.offline_timestamp {
             None => {
-                let offset = Duration::from_secs(60 * self.config.twitch.offline_grace_period as u64);
-                self.offline_timestamp = Some(SystemTime::now() + offset);
+                let offset = 60 * self.config.twitch.offline_grace_period as u64;
+                self.offline_timestamp = Some(plus(now_unix(), offset));
                 return Ok(false);
             }
             Some(instant) => {
-                if instant > SystemTime::now() {
+                if instant > now_unix() {
                     return Ok(false);
                 }
             }
