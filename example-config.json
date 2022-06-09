@@ -15,6 +15,9 @@
       "client_secret": "BJW8uMosDo02LcdU25u8dC95YTVBVZmy",
       "user_login": ["Elajjaz", "distortion2"],
       "top_clips": 5
+    },
+    "cache": {
+      "enabled": false
     }
   }
   

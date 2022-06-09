@@ -71,10 +71,26 @@ pub struct DiscordConfig {
     pub enabled_events: Vec<EventName>,
 }
 
+#[derive(Deserialize)]
+pub struct CacheConfig {
+    #[serde(default = "default_true")]
+    pub enabled: bool
+}
+
+impl Default for CacheConfig {
+    fn default() -> Self {
+        CacheConfig {
+            enabled: true
+        }
+    }
+}
+
 #[derive(Deserialize, Default)]
 pub struct Config {
     pub twitch: TwitchConfig,
     pub discord: DiscordConfig,
+    #[serde(default)]
+    pub cache: CacheConfig,
     #[serde(default)]
     role_map: HashMap<String, String>, // map of event -> id (for mentions)
 }
@@ -168,6 +184,7 @@ mod tests {
         let Config {
             twitch,
             discord,
+            cache,
             role_map: _,
         } = serde_json::from_slice(&file).unwrap();
 
@@ -191,5 +208,7 @@ mod tests {
         assert_eq!(role_names.live, "live");
         assert_eq!(role_names.update, "new game");
         assert_eq!(role_names.vod, "");
+
+        assert!(!cache.enabled);
     }
 }
