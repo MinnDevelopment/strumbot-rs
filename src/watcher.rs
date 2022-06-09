@@ -333,7 +333,7 @@ impl StreamWatcher {
                     format!(
                         "`{}.` [**{} \u{1F855}**]({}) \u{2022} **{}**\u{00A0}views\n",
                         i + 1,
-                        title.replace(']', "\\]"),
+                        title.replace(']', "\\]").replace('[', "\\["),
                         c.url,
                         c.view_count
                     )
