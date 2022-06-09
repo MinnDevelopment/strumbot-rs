@@ -325,15 +325,15 @@ impl StreamWatcher {
                 .iter()
                 .enumerate()
                 .map(|(i, c)| {
-                    let limited = if c.title.len() >= 25 {
+                    let title = if c.title.len() >= 25 {
                         format!("{}...", &c.title[..25])
                     } else {
                         c.title.to_string()
                     };
                     format!(
-                        "`{}.` [{} \u{1F855}]({}) \u{2022} **{}**\u{00A0}views\n",
+                        "`{}.` [**{} \u{1F855}**]({}) \u{2022} **{}**\u{00A0}views\n",
                         i + 1,
-                        limited,
+                        title.replace(']', "\\]"),
                         c.url,
                         c.view_count
                     )
