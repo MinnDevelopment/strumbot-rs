@@ -28,7 +28,14 @@ type Async = Result<(), error::AsyncError>;
 async fn main() -> Async {
     simple_logger::init_with_level(log::Level::Info).unwrap();
 
-    let config: String = tokio::fs::read_to_string("config.json").await?;
+    let config: String = match tokio::fs::read_to_string("config.json").await {
+        Ok(conf) => conf,
+        Err(e) => {
+            error!("Failed to read config.json: {}", e);
+            return Ok(());
+        }
+    };
+
     let mut config: Config = serde_json::from_str(&config)?;
 
     let enable_cache = match tokio::fs::create_dir(".cache").await {
@@ -45,7 +52,11 @@ async fn main() -> Async {
     info!("Connecting to Discord...");
 
     let discord_client = Client::new(config.discord.token.to_string());
-    config.init_roles(&discord_client).await?;
+    if let Err(e) = config.init_roles(&discord_client).await {
+        error!("Failed to setup discord: {}", e);
+        return Ok(());
+    }
+
     let config = Arc::new(config);
 
     let webhook_params: WebhookParams = config.discord.stream_notifications.parse()?;
