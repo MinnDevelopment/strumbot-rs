@@ -38,14 +38,15 @@ async fn main() -> Async {
 
     let mut config: Config = serde_json::from_str(&config)?;
 
-    let enable_cache = config.cache.enabled && match tokio::fs::create_dir(".cache").await {
-        Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => true,
-        Err(err) => {
-            warn!("Cannot create directory for system cache: {}", err);
-            false
-        }
-        Ok(_) => true,
-    };
+    let enable_cache = config.cache.enabled
+        && match tokio::fs::create_dir(".cache").await {
+            Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => true,
+            Err(err) => {
+                warn!("Cannot create directory for system cache: {}", err);
+                false
+            }
+            Ok(_) => true,
+        };
 
     // Discord setup
 

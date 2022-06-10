@@ -74,14 +74,12 @@ pub struct DiscordConfig {
 #[derive(Deserialize)]
 pub struct CacheConfig {
     #[serde(default = "default_true")]
-    pub enabled: bool
+    pub enabled: bool,
 }
 
 impl Default for CacheConfig {
     fn default() -> Self {
-        CacheConfig {
-            enabled: true
-        }
+        CacheConfig { enabled: true }
     }
 }
 

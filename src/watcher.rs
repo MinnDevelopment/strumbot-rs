@@ -34,7 +34,11 @@ impl StreamSegment {
         let video_id = match stream.get_video(client).await {
             Ok(v) => v.id,
             Err(e) => {
-                error!("Failed to get video for stream: {}", e);
+                error!(
+                    "[{}] Failed to get video for stream: {}",
+                    stream.user_name.to_lowercase(),
+                    e
+                );
                 "".to_string()
             }
         };
@@ -80,6 +84,7 @@ pub enum WatcherState {
 pub struct StreamWatcher {
     pub user_name: String,
     user_id: String,
+    stream_id: String,
     segments: Vec<StreamSegment>,
     start_timestamp: DateTime,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -92,7 +97,8 @@ impl StreamWatcher {
     pub fn new(user_name: String, config: Arc<Config>) -> Self {
         Self {
             user_name,
-            user_id: "".to_string(), // initialized in go_live
+            user_id: "".to_string(),   // initialized in go_live
+            stream_id: "".to_string(), // initialized in go_live
             config,
             segments: Vec::new(),
             start_timestamp: DateTime::utc_now(),
@@ -143,11 +149,12 @@ impl StreamWatcher {
         self.offline_timestamp = None;
         self.start_timestamp = stream.started_at;
         self.user_id = stream.user_id.clone();
+        self.stream_id = stream.id.clone();
 
-        let game = self.add_segment(client, &stream).await?;
+        let game = self.add_segment(client, &stream).await?.game.clone();
         let mention = self.get_mention("live");
         let user_name = &stream.user_name;
-        info!("User {} started streaming {}", user_name, game.name);
+        info!("[{}] User started streaming {}", self.user_name, game.name);
 
         if self.is_skipped(EventName::Live) {
             return Ok(());
@@ -169,7 +176,10 @@ impl StreamWatcher {
 
         let embed = embed.build();
         if let Err(err) = request.embeds(&[embed.clone()])?.exec().await {
-            error!("Failed to send live event embed: {}\nEmbed: {:?}", err, embed);
+            error!(
+                "[{}] Failed to send live event embed: {}\nEmbed: {:?}",
+                self.user_name, err, embed
+            );
         }
         Ok(())
     }
@@ -182,17 +192,40 @@ impl StreamWatcher {
     ) -> Result<bool, Error> {
         self.offline_timestamp = None;
         let old_game = match self.segments.last() {
-            Some(seg) if seg.game.id == stream.game_id => return Ok(false),
             Some(seg) => seg.game.clone(), // have to clone so the borrow isn't an issue later
             None => {
                 panic!("Impossible situation encountered. Stream game update without being live?")
             }
         };
 
-        let game = self.add_segment(client, &stream).await?;
+        let vod_change = stream.id != self.stream_id;
+        let game_change = stream.game_id != old_game.id;
+        let segment = if vod_change || game_change {
+            // Stream has changed, so we need to update the segments
+            self.add_segment(client, &stream).await?
+        } else {
+            // Nothing has changed, continue as usual.
+            return Ok(false);
+        };
+
+        // Clone to avoid propagating mutable borrow
+        let game = segment.game.clone();
+
+        // Start from beginning of new vod
+        if vod_change {
+            segment.position = 0;
+            self.stream_id = stream.id.clone();
+        }
+
+        // If the game didn't change, we don't need to send any announcement
+        if !game_change {
+            info!("[{}] Vod for current stream changed.", self.user_name);
+            return Ok(true);
+        }
+
         info!(
-            "User {} updated game. {} -> {}",
-            stream.user_name, old_game.name, game.name
+            "[{}] Stream changed game: {} -> {}",
+            self.user_name, old_game.name, game.name
         );
 
         if self.is_skipped(EventName::Update) {
@@ -222,7 +255,10 @@ impl StreamWatcher {
 
         let embed = embed.build();
         if let Err(err) = request.embeds(&[embed.clone()])?.exec().await {
-            error!("Failed to send update event embed: {}\nEmbed: {:?}", err, embed);
+            error!(
+                "[{}] Failed to send update event embed: {}\nEmbed: {:?}",
+                self.user_name, err, embed
+            );
         }
         Ok(true)
     }
@@ -242,7 +278,7 @@ impl StreamWatcher {
             }
         }
 
-        info!("{} went offline.", self.user_name);
+        info!("[{}] stream went offline", self.user_name);
 
         if self.is_skipped(EventName::Vod) {
             self.segments.clear();
@@ -259,7 +295,7 @@ impl StreamWatcher {
             match client.get_video_by_id(vid).await {
                 Ok(vid) => Some(vid),
                 Err(e) => {
-                    error!("Failed to get VOD for offline stream: {}", e);
+                    error!("[{}] Failed to get VOD for offline stream: {}", self.user_name, e);
                     None
                 }
             }
@@ -346,25 +382,33 @@ impl StreamWatcher {
 
         let embed = embed.build();
         if let Err(err) = request.embeds(&[embed.clone()])?.exec().await {
-            error!("Failed to send vod event embed: {}\nEmbed: {:?}", err, embed);
+            error!(
+                "[{}] Failed to send vod event embed: {}\nEmbed: {:?}",
+                self.user_name, err, embed
+            );
         }
         Ok(true)
     }
 
     #[inline]
-    async fn add_segment(&mut self, client: &Arc<TwitchClient>, stream: &Stream) -> Result<Game, RequestError> {
+    async fn add_segment<'a>(
+        &'a mut self,
+        client: &Arc<TwitchClient>,
+        stream: &Stream,
+    ) -> Result<&'a mut StreamSegment, RequestError> {
         let game = match stream.get_game(client).await {
             Ok(g) => g,
             Err(RequestError::Deserialize(e)) => {
-                error!("Failed to deserialize game: {}", e);
+                error!("[{}] Failed to deserialize game: {}", self.user_name, e);
                 Game::empty()
             }
             Err(RequestError::NotFound(_, _)) => Game::empty(),
-            err => return err,
+            Err(e) => return Err(e),
         };
 
-        self.segments.push(StreamSegment::from(client, stream, &game).await);
-        Ok(game)
+        let segment = StreamSegment::from(client, stream, &game).await;
+        self.segments.push(segment);
+        Ok(self.segments.last_mut().unwrap())
     }
 
     #[inline]
