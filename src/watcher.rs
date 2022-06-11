@@ -151,7 +151,10 @@ impl StreamWatcher {
         self.user_id = stream.user_id.clone();
         self.stream_id = stream.id.clone();
 
-        let game = self.add_segment(client, &stream).await?.game.clone();
+        let segment = self.add_segment(client, &stream).await?;
+        segment.position = 0;
+        let game = segment.game.clone();
+
         let mention = self.get_mention("live");
         let user_name = &stream.user_name;
         info!("[{}] User started streaming {}", self.user_name, game.name);
