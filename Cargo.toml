@@ -5,9 +5,7 @@ edition = "2021"
 
 [dependencies]
 twilight-http-ratelimiting = "0.11.0"
-twilight-http = "0.11.0"
 twilight-model = "0.11.0"
-twilight-util = { default-features = false, features = ["builder"], version = "0.11.0" }
 futures = "0.3.21"
 serde_json = "1.0"
 url = "2.2.2"
@@ -17,6 +15,15 @@ log = "0.4"
 simple_logger = "2.1"
 async-trait = "0.1"
 once_cell = "1"
+
+[dependencies.twilight-util]
+version = "0.11"
+features = ["builder"]
+default-features = false
+
+[dependencies.twilight-http]
+version = "0.11"
+features = ["decompression", "rustls-webpki-roots", "trust-dns"]
 
 [dependencies.serde]
 version = "1.0"
@@ -32,7 +39,8 @@ default-features = false
 
 [dependencies.reqwest]
 version = "0.11"
-features = ["json"]
+features = ["json", "rustls-tls", "rustls-tls-webpki-roots", "brotli", "trust-dns"]
+default-features = false
 
 [dependencies.eos]
 features = ["alloc", "parsing", "serde", "macros"]
