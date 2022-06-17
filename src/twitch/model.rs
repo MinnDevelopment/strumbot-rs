@@ -13,8 +13,13 @@ impl Game {
     pub fn empty() -> Self {
         Game {
             id: "".to_string(),
-            name: "".to_string(),
+            name: "No Category".to_string(),
         }
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.id.is_empty()
     }
 }
 

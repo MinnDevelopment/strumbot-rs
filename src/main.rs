@@ -63,8 +63,7 @@ async fn main() -> Async {
     let webhook_params: WebhookParams = config.discord.stream_notifications.parse()?;
     let webhook = Arc::new(WebhookClient::new(discord_client, webhook_params));
 
-    let mut watchers: HashMap<String, mpsc::Sender<StreamUpdate>> =
-        HashMap::with_capacity(config.twitch.user_login.len());
+    let mut watchers = HashMap::with_capacity(config.twitch.user_login.len());
 
     // Twitch setup
 

@@ -164,7 +164,11 @@ impl StreamWatcher {
         }
 
         let mut embed = self.create_embed(&stream, &game);
-        let content = format!("{} {} is live with **{}**!", mention, user_name, game.name);
+        let content = if game.is_empty() {
+            format!("{} {} is live!", mention, user_name)
+        } else {
+            format!("{} {} is live with **{}**!", mention, user_name, game.name)
+        };
 
         let mut request = webhook.send_message().content(&content)?;
 
