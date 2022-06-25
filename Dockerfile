@@ -10,7 +10,7 @@ RUN cargo build --release
 RUN rm src/*.rs
 RUN rm ./target/release/deps/strumbot*
 
-
+FROM debian:buster as libs
 
 FROM rust:1.61 as build
 
@@ -30,6 +30,7 @@ FROM gcr.io/distroless/cc
 
 WORKDIR /app
 
+COPY --from=libs /lib/x86_64-linux-gnu/libz.so.1 /lib/x86_64-linux-gnu/libz.so.1
 COPY --from=build /strumbot/target/release/strumbot /usr/bin/strumbot
 
 CMD ["/usr/bin/strumbot"]
