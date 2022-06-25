@@ -1,5 +1,5 @@
 use crate::{
-    discord::{WebhookClient, WebhookParams},
+    discord::{Gateway, WebhookClient, WebhookParams},
     twitch::oauth::{ClientParams, OauthClient},
 };
 use config::Config;
@@ -52,13 +52,17 @@ async fn main() -> Async {
 
     info!("Connecting to Discord...");
 
-    let discord_client = Client::new(config.discord.token.to_string());
+    let discord_client = Arc::new(Client::new(config.discord.token.to_string()));
     if let Err(e) = config.init_roles(&discord_client).await {
         error!("Failed to setup discord: {}", e);
         return Ok(());
     }
 
     let config = Arc::new(config);
+
+    let gateway = Gateway::new(Arc::clone(&discord_client), Arc::clone(&config));
+
+    tokio::spawn(gateway.run());
 
     let webhook_params: WebhookParams = config.discord.stream_notifications.parse()?;
     let webhook = Arc::new(WebhookClient::new(discord_client, webhook_params));

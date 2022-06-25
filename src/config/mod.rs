@@ -37,7 +37,7 @@ pub struct TwitchConfig {
     pub offline_grace_period: u8,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Deserialize, Default, Clone)]
 pub struct RoleNameConfig {
     #[serde(default)]
     pub live: String,
@@ -45,6 +45,15 @@ pub struct RoleNameConfig {
     pub vod: String,
     #[serde(default)]
     pub update: String,
+}
+
+impl RoleNameConfig {
+    pub fn values(&self) -> Vec<&String> {
+        vec![&self.live, &self.vod, &self.update]
+            .into_iter()
+            .filter(|s| !s.is_empty())
+            .collect()
+    }
 }
 
 #[derive(Deserialize, PartialEq, Eq)]

@@ -1,16 +1,16 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
-use std::{error::Error, fmt::Display, str::FromStr};
+use std::{error::Error, fmt::Display, str::FromStr, sync::Arc};
 use twilight_http::{request::channel::webhook::ExecuteWebhook, Client};
 use twilight_model::id::{marker::WebhookMarker, Id};
 
 pub struct WebhookClient {
-    client: Client,
+    client: Arc<Client>,
     params: WebhookParams,
 }
 
 impl WebhookClient {
-    pub fn new(client: Client, params: WebhookParams) -> Self {
+    pub fn new(client: Arc<Client>, params: WebhookParams) -> Self {
         Self { client, params }
     }
 
