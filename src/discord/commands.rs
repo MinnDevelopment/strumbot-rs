@@ -1,7 +1,6 @@
 use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 use futures::StreamExt;
-use log;
 use twilight_gateway::{Event, Intents, Shard};
 use twilight_http::Client;
 use twilight_model::{
@@ -90,7 +89,7 @@ impl Gateway {
         }
     }
 
-    async fn init_roles(&mut self, config: &RoleNameConfig, guild_id: &String) -> Result<bool, AsyncError> {
+    async fn init_roles(&mut self, config: &RoleNameConfig, guild_id: &str) -> Result<bool, AsyncError> {
         let guild_id: Id<GuildMarker> = Id::from_str(guild_id)?;
         let role_names = config.values();
 
@@ -109,7 +108,7 @@ impl Gateway {
 
         // Find role ids
         let has_roles = if let Some(ref id) = self.config.discord.guild_id.clone() {
-            match self.init_roles(&r, &id).await {
+            match self.init_roles(&r, id).await {
                 Err(e) => {
                     log::error!("Failed to initialize roles: {}", e);
                     return false;
