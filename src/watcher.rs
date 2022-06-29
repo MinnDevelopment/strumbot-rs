@@ -4,9 +4,7 @@ use eos::DateTime;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use twilight_model::{channel::embed::EmbedFooter, http::attachment::Attachment};
-use twilight_util::builder::embed::{
-    EmbedAuthorBuilder, EmbedBuilder, EmbedFieldBuilder, ImageSource,
-};
+use twilight_util::builder::embed::{EmbedAuthorBuilder, EmbedBuilder, EmbedFieldBuilder, ImageSource};
 
 use crate::{
     config::{Config, EventName},
