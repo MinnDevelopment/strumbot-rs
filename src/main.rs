@@ -19,6 +19,7 @@ mod config;
 mod discord;
 mod error;
 mod twitch;
+#[macro_use]
 mod util;
 mod watcher;
 

@@ -57,10 +57,8 @@ impl TwitchClient {
     }
 
     pub async fn get_game_by_id(&self, id: String) -> Result<Game, RequestError> {
-        static EMPTY_GAME: Lazy<Game> = Lazy::new(Game::empty);
-
         if id.is_empty() {
-            return Ok(EMPTY_GAME.clone());
+            return Ok(Game::empty());
         }
 
         let cached_game = locked(&self.games_cache, |cache| cache.get(&id).cloned());
@@ -140,6 +138,21 @@ impl TwitchClient {
             .await
     }
 
+    pub async fn get_videos(&self, mut ids: Vec<String>) -> Result<Vec<Video>, RequestError> {
+        ids.dedup();
+        let params = ids
+            .iter()
+            .fold(QueryParams::builder(), |query, id| query.param("id", id.to_string()))
+            .build();
+
+        self.oauth
+            .get(&self.identity(), "videos", params, |b| {
+                let body: TwitchData<Video> = serde_json::from_slice(&b)?;
+                Ok(body.data)
+            })
+            .await
+    }
+
     pub async fn get_top_clips(
         &self,
         user_id: String,
@@ -177,9 +190,7 @@ impl TwitchClient {
         } else if response.status().as_u16() == 404 {
             Err(RequestError::NotFound("Thumbnail".to_string(), url.to_string()))
         } else {
-            Err(RequestError::Unexpected(
-                response.error_for_status().unwrap_err().into(),
-            ))
+            Err(RequestError::Http(response.status()))
         }
     }
 }

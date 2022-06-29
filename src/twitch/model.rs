@@ -1,3 +1,7 @@
+use std::{fmt::Display, iter::Sum, ops::Add};
+
+use once_cell::sync::Lazy;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use super::TwitchClient;
@@ -79,6 +83,7 @@ pub struct Video {
     #[serde(rename = "type")]
     pub kind: VideoType,
     pub created_at: eos::DateTime,
+    pub duration: VideoDuration,
 }
 
 impl Video {
@@ -153,4 +158,65 @@ impl Stream {
 #[derive(Deserialize, Clone, Debug)]
 pub struct TwitchData<T> {
     pub data: Vec<T>,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct VideoDuration(u32);
+
+impl Add<VideoDuration> for VideoDuration {
+    type Output = VideoDuration;
+
+    fn add(self, other: VideoDuration) -> Self::Output {
+        VideoDuration(self.0 + other.0)
+    }
+}
+
+impl Sum for VideoDuration {
+    fn sum<I: Iterator<Item = VideoDuration>>(iter: I) -> Self {
+        iter.fold(VideoDuration(0), |acc, x| acc + x)
+    }
+}
+
+impl Display for VideoDuration {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut seconds = self.0;
+        let mut minutes = seconds / 60;
+        seconds %= 60;
+        let hours = minutes / 60;
+        minutes %= 60;
+        if hours > 0 {
+            write!(f, "{:02}h", hours)?;
+        }
+        if minutes > 0 {
+            write!(f, "{:02}m", minutes)?;
+        }
+        write!(f, "{:02}s", seconds)
+    }
+}
+
+impl<'de> Deserialize<'de> for VideoDuration {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        static REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"(\d+)[hms]").unwrap());
+
+        let s = String::deserialize(deserializer)?;
+        let duration = REGEX
+            .find_iter(&s)
+            .filter_map(|m| match REGEX.captures(&s[m.range()]) {
+                Some(c) => {
+                    let num = c.get(1).map(|n| n.as_str().parse::<u32>().unwrap_or(0)).unwrap_or(0);
+                    Some(match c.get(2).map_or("", |m| m.as_str()) {
+                        "h" => num * 60 * 60,
+                        "m" => num * 60,
+                        "s" => num,
+                        _ => 0,
+                    })
+                }
+                None => None,
+            })
+            .sum();
+        Ok(VideoDuration(duration))
+    }
 }

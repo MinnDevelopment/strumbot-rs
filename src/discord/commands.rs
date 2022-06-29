@@ -241,7 +241,12 @@ impl Gateway {
         if let Err(e) = res {
             log::error!("Failed to update member roles: {}", e);
         } else {
-            log::info!("Successfully updated member roles! Member: {} Role: {} ({})", user_id, role_name, role);
+            log::info!(
+                "Successfully updated member roles! Member: {} Role: {} ({})",
+                user_id,
+                role_name,
+                role
+            );
         }
 
         let res = client

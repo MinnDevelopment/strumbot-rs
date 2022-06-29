@@ -3,14 +3,16 @@ use std::{num::NonZeroU64, sync::Arc};
 use eos::DateTime;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
-use twilight_model::http::attachment::Attachment;
-use twilight_util::builder::embed::{EmbedAuthorBuilder, EmbedBuilder, EmbedFieldBuilder, ImageSource};
+use twilight_model::{channel::embed::EmbedFooter, http::attachment::Attachment};
+use twilight_util::builder::embed::{
+    EmbedAuthorBuilder, EmbedBuilder, EmbedFieldBuilder, ImageSource,
+};
 
 use crate::{
     config::{Config, EventName},
     discord::WebhookClient,
     error::{AsyncError as Error, RequestError},
-    twitch::{Game, Stream, TwitchClient},
+    twitch::{Game, Stream, TwitchClient, VideoDuration},
     util::{now_unix, plus},
 };
 
@@ -164,6 +166,8 @@ impl StreamWatcher {
         }
 
         let mut embed = self.create_embed(&stream, &game);
+        embed = self.set_footer(embed, &self.config.discord.role_name.live);
+
         let content = if game.is_empty() {
             format!("{} {} is live!", mention, user_name)
         } else {
@@ -239,14 +243,16 @@ impl StreamWatcher {
             return Ok(true);
         }
 
-        let mention = self.get_mention("update");
         let mut embed = self.create_embed(&stream, &game);
+        embed = self.set_footer(embed, &self.config.discord.role_name.update);
         embed = match self.segments.last() {
             Some(segs) if !segs.video_id.is_empty() => {
                 embed.description(format!("Start watching at {}", segs.vod_link()))
             }
             _ => embed,
         };
+
+        let mention = self.get_mention("update");
         let content = format!("{} {} switched game to **{}**!", mention, stream.user_name, game.name);
 
         let mut request = webhook.send_message().content(&content)?;
@@ -310,7 +316,15 @@ impl StreamWatcher {
 
         let mention = self.get_mention("vod");
         let mut embed = EmbedBuilder::new().color(0x6441A4);
-        let content = format!("{} VOD from {}", mention, self.user_name);
+        embed = self.set_footer(embed, &self.config.discord.role_name.vod);
+
+        let vods = client
+            .get_videos(self.segments.iter().map(|seg| seg.video_id.clone()).collect())
+            .await
+            .unwrap_or_default();
+        let duration: VideoDuration = vods.iter().map(|v| v.duration).sum();
+
+        let content = format!("{} VOD from {} [{}]", mention, self.user_name, duration);
         let mut request = webhook.send_message().content(&content)?;
 
         let files;
@@ -429,6 +443,19 @@ impl StreamWatcher {
     #[inline]
     fn is_skipped(&self, event: EventName) -> bool {
         !self.config.discord.enabled_events.contains(&event)
+    }
+
+    #[inline]
+    fn set_footer(&self, embed: EmbedBuilder, name: &str) -> EmbedBuilder {
+        if !self.config.discord.show_notify_hints {
+            return embed;
+        }
+
+        embed.footer(EmbedFooter {
+            icon_url: None,
+            proxy_icon_url: None,
+            text: format!("Subscribe to notifications by typing: /notify role: {name}"),
+        })
     }
 
     #[inline]
