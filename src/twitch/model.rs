@@ -182,9 +182,7 @@ impl Display for VideoDuration {
         let seconds = self.0 % 60;
         let minutes = self.0 / 60 % 60;
         let hours = self.0 / 3600;
-        write!(f, "{:02}h", hours)?;
-        write!(f, "{:02}m", minutes)?;
-        write!(f, "{:02}s", seconds)
+        write!(f, "{hours:02}h{minutes:02}m{seconds:02}s")
     }
 }
 
