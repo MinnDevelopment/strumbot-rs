@@ -445,7 +445,7 @@ impl StreamWatcher {
 
     #[inline]
     fn set_footer(&self, embed: EmbedBuilder, name: &str) -> EmbedBuilder {
-        if !self.config.discord.show_notify_hints {
+        if !self.config.discord.show_notify_hints || name.is_empty() {
             return embed;
         }
 
