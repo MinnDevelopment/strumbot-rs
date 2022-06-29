@@ -1,4 +1,4 @@
-name: rust-tests
+name: tests
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ "master" ]
 
 jobs:
-  rust-tests:
+  test:
     name: Run all tests
     runs-on: ubuntu-latest
     permissions:
