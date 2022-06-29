@@ -179,11 +179,9 @@ impl Sum for VideoDuration {
 
 impl Display for VideoDuration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut seconds = self.0;
-        let mut minutes = seconds / 60;
-        seconds %= 60;
-        let hours = minutes / 60;
-        minutes %= 60;
+        let seconds = self.0 % 60;
+        let minutes = self.0 / 60 % 60;
+        let hours = self.0 / 3600;
         write!(f, "{:02}h", hours)?;
         write!(f, "{:02}m", minutes)?;
         write!(f, "{:02}s", seconds)
@@ -199,18 +197,15 @@ impl<'de> Deserialize<'de> for VideoDuration {
 
         let s = String::deserialize(deserializer)?;
         let duration = REGEX
-            .find_iter(&s)
-            .filter_map(|m| match REGEX.captures(&s[m.range()]) {
-                Some(c) => {
-                    let num = c.get(1).map(|n| n.as_str().parse::<u32>().unwrap_or(0)).unwrap_or(0);
-                    Some(match c.get(2).map_or("", |m| m.as_str()) {
-                        "h" => num * 60 * 60,
-                        "m" => num * 60,
-                        "s" => num,
-                        _ => 0,
-                    })
+            .captures_iter(&s)
+            .map(|c| {
+                let num = c.get(1).map(|n| n.as_str().parse::<u32>().unwrap_or(0)).unwrap_or(0);
+                match c.get(2).map_or("", |m| m.as_str()) {
+                    "h" => num * 3600,
+                    "m" => num * 60,
+                    "s" => num,
+                    _ => 0,
                 }
-                None => None,
             })
             .sum();
         Ok(VideoDuration(duration))
