@@ -198,12 +198,16 @@ impl<'de> Deserialize<'de> for VideoDuration {
         let s = String::deserialize(deserializer)?;
         let duration = REGEX
             .captures_iter(&s)
-            .map(|c| {
-                let num = c.get(1).map(|n| n.as_str().parse::<u32>().unwrap_or(0)).unwrap_or(0);
-                match c.get(2).map_or("", |m| m.as_str()) {
-                    "h" => num * 3600,
-                    "m" => num * 60,
-                    "s" => num,
+            .filter_map(|m| {
+                m[1].parse::<u32>()
+                    .ok()
+                    .zip(m[2].bytes().next())
+            })
+            .map(|(num, unit)| {
+                match unit {
+                    b'h' => num * 3600,
+                    b'm' => num * 60,
+                    b's' => num,
                     _ => 0,
                 }
             })
