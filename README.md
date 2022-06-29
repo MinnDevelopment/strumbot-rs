@@ -1,5 +1,7 @@
 # strumbot-rs
 
+[![tests](https://github.com/MinnDevelopment/strumbot-rs/actions/workflows/tests.yml/badge.svg)](https://github.com/MinnDevelopment/strumbot-rs/actions/workflows/tests.yml)
+
 Rust implementation of https://github.com/MinnDevelopment/strumbot (WIP)
 
 ## TODO
