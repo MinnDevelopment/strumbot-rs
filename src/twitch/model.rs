@@ -184,12 +184,8 @@ impl Display for VideoDuration {
         seconds %= 60;
         let hours = minutes / 60;
         minutes %= 60;
-        if hours > 0 {
-            write!(f, "{:02}h", hours)?;
-        }
-        if minutes > 0 {
-            write!(f, "{:02}m", minutes)?;
-        }
+        write!(f, "{:02}h", hours)?;
+        write!(f, "{:02}m", minutes)?;
         write!(f, "{:02}s", seconds)
     }
 }
@@ -199,7 +195,7 @@ impl<'de> Deserialize<'de> for VideoDuration {
     where
         D: serde::Deserializer<'de>,
     {
-        static REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"(\d+)[hms]").unwrap());
+        static REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"(\d+)([hms])").unwrap());
 
         let s = String::deserialize(deserializer)?;
         let duration = REGEX
@@ -218,5 +214,27 @@ impl<'de> Deserialize<'de> for VideoDuration {
             })
             .sum();
         Ok(VideoDuration(duration))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde::Deserialize;
+
+    use super::VideoDuration;
+    type Error = Box<dyn std::error::Error>;
+
+    #[derive(Deserialize)]
+    struct Holder {
+        pub duration: VideoDuration,
+    }
+
+    #[test]
+    fn parse_duration() -> Result<(), Error> {
+        let holder: Holder = serde_json::from_str("{\"duration\": \"1h02m3s\"}")?;
+        assert_eq!(holder.duration.0, 3723);
+        assert_eq!(holder.duration.to_string(), "01h02m03s");
+        assert_eq!(VideoDuration(10).to_string(), "00h00m10s");
+        Ok(())
     }
 }
