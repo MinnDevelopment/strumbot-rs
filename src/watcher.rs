@@ -318,12 +318,17 @@ impl StreamWatcher {
             .map(|s| format!("{} {}", s.vod_link(), s.game.name))
             .collect();
 
-        // Split into chunks of 1000 characters to stay below embed limits
-        // TODO: Handle case with over 6k characters properly
         let mut index = vec![];
         let mut current = String::with_capacity(1000);
         for stamp in timestamps {
+            // Split into chunks of 1000 characters to stay below embed limits
             if current.len() + stamp.len() > 1000 {
+                // At most 4 chunks to not hit the limit of 6000 characters in total
+                if index.len() == 3 {
+                    current.push_str("...");
+                    break; // pushed after loop
+                }
+
                 index.push(current);
                 current = String::with_capacity(1000);
             }
