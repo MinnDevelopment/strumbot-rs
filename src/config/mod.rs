@@ -9,8 +9,8 @@ use twilight_model::{
     id::{marker::GuildMarker, Id},
 };
 
-use crate::error::AsyncError as Error;
 use crate::util::ResponseResolve;
+use crate::{discord::WebhookParams, error::AsyncError as Error};
 
 pub mod errors;
 
@@ -71,8 +71,8 @@ pub struct DiscordConfig {
     pub token: String,
     #[serde(rename = "server_id", skip_serializing_if = "Option::is_none")]
     pub guild_id: Option<String>,
-    pub stream_notifications: String,
-    // pub logging: Option<String>,
+    pub stream_notifications: WebhookParams,
+    pub logging: Option<WebhookParams>,
     #[serde(default = "default_true")]
     pub show_notify_hints: bool,
     #[serde(default)]
@@ -206,7 +206,13 @@ mod tests {
             discord.token,
             "MzgwNDY1NTU1MzU1OTkyMDcw.GDPnv6.FC4xX7mQn3rPV-MkiVboQPWHrv88u4y5aS9NGc"
         );
-        assert_eq!(discord.stream_notifications, "https://canary.discord.com/api/webhooks/983342910521090131/6iwWTd-VHL7yzlJ_W1SWagLBVtTbJK8NhlMFpnjkibU5UYqjC0KgfDrTPdxUC7fdSJlD");
+
+        assert_eq!(discord.stream_notifications.id, Id::new(983342910521090131));
+        assert_eq!(
+            discord.stream_notifications.token,
+            "6iwWTd-VHL7yzlJ_W1SWagLBVtTbJK8NhlMFpnjkibU5UYqjC0KgfDrTPdxUC7fdSJlD"
+        );
+
         assert!(discord.enabled_events.contains(&EventName::Live));
         assert!(discord.enabled_events.contains(&EventName::Update));
         assert!(discord.enabled_events.contains(&EventName::Vod));

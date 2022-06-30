@@ -1,6 +1,7 @@
 use once_cell::sync::Lazy;
 use regex::Regex;
-use std::{error::Error, fmt::Display, str::FromStr, sync::Arc};
+use serde::Deserialize;
+use std::sync::Arc;
 use twilight_http::{request::channel::webhook::ExecuteWebhook, Client};
 use twilight_model::id::{marker::WebhookMarker, Id};
 
@@ -20,46 +21,41 @@ impl WebhookClient {
     }
 }
 
+#[derive(Clone)]
 pub struct WebhookParams {
-    id: Id<WebhookMarker>,
-    token: String,
+    pub id: Id<WebhookMarker>,
+    pub token: String,
 }
 
-#[derive(Debug)]
-pub struct ParseError {
-    regex: &'static Regex,
-    value: String,
-}
-
-impl Display for ParseError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Failed to parse string using regex.\nRegex: {}\nProvided: {}",
-            self.regex, self.value
-        )
-    }
-}
-
-impl Error for ParseError {}
-
-impl FromStr for WebhookParams {
-    type Err = Box<dyn Error + Send + Sync>;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+impl<'de> Deserialize<'de> for WebhookParams {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
         static REGEX: Lazy<Regex> =
             Lazy::new(|| Regex::new(r"^https?://(?:\w+\.)?discord.com/api/webhooks/(\d+)/([\w-]+)$").unwrap());
 
-        if let Some(captures) = REGEX.captures(s) {
-            // We can use unwrap here because the regex is well defined and constant
-            let id = captures.get(1).unwrap().as_str().parse::<u64>()?;
-            let token = captures.get(2).unwrap().as_str().to_string();
-            Ok(WebhookParams { id: Id::new(id), token })
-        } else {
-            Err(Box::new(ParseError {
-                regex: &REGEX,
-                value: s.into(),
-            }))
+        let s = String::deserialize(deserializer)?;
+        let m = REGEX
+            .captures(&s)
+            .and_then(|c| Option::zip(c.get(1).map(|m| m.as_str()), c.get(2).map(|m| m.as_str())))
+            .and_then(|(id, token)| Option::zip(id.parse::<u64>().ok(), Some(token.to_string())));
+        match m {
+            Some((id, token)) => Ok(WebhookParams { id: Id::new(id), token }),
+            None => Err(serde::de::Error::custom(format!(
+                "Failed to parse string using regex.\nRegex: {}\nProvided: {}",
+                REGEX.as_str(),
+                s
+            ))),
+        }
+    }
+}
+
+impl Default for WebhookParams {
+    fn default() -> Self {
+        Self {
+            id: Id::new(1),
+            token: "".to_string(),
         }
     }
 }
@@ -68,9 +64,18 @@ impl FromStr for WebhookParams {
 mod tests {
     use super::*;
 
+    #[derive(Deserialize)]
+    struct Holder {
+        url: WebhookParams,
+    }
+
     #[test]
     fn test_parse_webhook_params() {
-        let params: WebhookParams = "https://canary.discord.com/api/webhooks/983342910521090131/6iwWTd-VHL7yzlJ_W1SWagLBVtTbJK8NhlMFpnjkibU5UYqjC0KgfDrTPdxUC7fdSJlD".parse().unwrap();
+        let json = r#"{
+            "url": "https://discord.com/api/webhooks/983342910521090131/6iwWTd-VHL7yzlJ_W1SWagLBVtTbJK8NhlMFpnjkibU5UYqjC0KgfDrTPdxUC7fdSJlD"
+        }"#;
+        let holder: Holder = serde_json::from_str(json).unwrap();
+        let params = holder.url;
         assert_eq!(params.id, Id::new(983342910521090131));
         assert_eq!(
             params.token,
@@ -80,7 +85,9 @@ mod tests {
 
     #[test]
     fn test_parse_webhook_params_invalid() {
-        let params = WebhookParams::from_str("invalid url https://canary.discord.com/api/webhooks/983342910521090131/6iwWTd-VHL7yzlJ_W1SWagLBVtTbJK8NhlMFpnjkibU5UYqjC0KgfDrTPdxUC7fdSJlD");
-        assert!(params.is_err());
+        let json = r#"{
+            "url": "https://discord-errors.com/api/webhooks/983342910521090131/6iwWTd-VHL7yzlJ_W1SWagLBVtTbJK8NhlMFpnjkibU5UYqjC0KgfDrTPdxUC7fdSJlD"
+        }"#;
+        assert!(serde_json::from_str::<Holder>(json).is_err());
     }
 }

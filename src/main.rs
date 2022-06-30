@@ -1,5 +1,5 @@
 use crate::{
-    discord::{Gateway, WebhookClient, WebhookParams},
+    discord::{Gateway, WebhookClient},
     twitch::oauth::{ClientParams, OauthClient},
 };
 use config::Config;
@@ -65,7 +65,7 @@ async fn main() -> Async {
 
     tokio::spawn(gateway.run());
 
-    let webhook_params: WebhookParams = config.discord.stream_notifications.parse()?;
+    let webhook_params = config.discord.stream_notifications.clone();
     let webhook = Arc::new(WebhookClient::new(discord_client, webhook_params));
 
     let mut watchers = HashMap::with_capacity(config.twitch.user_login.len());

@@ -196,18 +196,12 @@ impl<'de> Deserialize<'de> for VideoDuration {
         let s = String::deserialize(deserializer)?;
         let duration = REGEX
             .captures_iter(&s)
-            .filter_map(|m| {
-                m[1].parse::<u32>()
-                    .ok()
-                    .zip(m[2].bytes().next())
-            })
-            .map(|(num, unit)| {
-                match unit {
-                    b'h' => num * 3600,
-                    b'm' => num * 60,
-                    b's' => num,
-                    _ => 0,
-                }
+            .filter_map(|m| m[1].parse::<u32>().ok().zip(m[2].bytes().next()))
+            .map(|(num, unit)| match unit {
+                b'h' => num * 3600,
+                b'm' => num * 60,
+                b's' => num,
+                _ => 0,
             })
             .sum();
         Ok(VideoDuration(duration))
@@ -228,7 +222,7 @@ mod tests {
 
     #[test]
     fn parse_duration() -> Result<(), Error> {
-        let holder: Holder = serde_json::from_str("{\"duration\": \"1h02m3s\"}")?;
+        let holder: Holder = serde_json::from_str(r#"{"duration": "1h02m3s"}"#)?;
         assert_eq!(holder.duration.0, 3723);
         assert_eq!(holder.duration.to_string(), "01h02m03s");
         assert_eq!(VideoDuration(10).to_string(), "00h00m10s");
