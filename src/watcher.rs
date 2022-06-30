@@ -3,6 +3,7 @@ use std::{num::NonZeroU64, sync::Arc};
 use eos::DateTime;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
+use twilight_http::request::channel::webhook::ExecuteWebhook;
 use twilight_model::{channel::embed::EmbedFooter, http::attachment::Attachment};
 use twilight_util::builder::embed::{EmbedAuthorBuilder, EmbedBuilder, EmbedFieldBuilder, ImageSource};
 
@@ -172,24 +173,10 @@ impl StreamWatcher {
             format!("{} {} is live with **{}**!", mention, user_name, game.name)
         };
 
-        let mut request = webhook.send_message().content(&content)?;
-
+        let request = webhook.send_message().content(&content)?;
         let thumbnail = stream.get_thumbnail(client).await;
-        let files; // must have same lifetime as request
-        if let Some(thumbnail) = thumbnail {
-            let filename = "thumbnail.jpg".to_string();
-            embed = embed.image(ImageSource::attachment(&filename)?);
-            files = [Attachment::from_bytes(filename, thumbnail, 0)];
-            request = request.attachments(&files)?;
-        }
+        self.send(request, embed, thumbnail, "live").await;
 
-        let embed = embed.build();
-        if let Err(err) = request.embeds(&[embed.clone()])?.exec().await {
-            error!(
-                "[{}] Failed to send live event embed: {}\nEmbed: {:?}",
-                self.user_name, err, embed
-            );
-        }
         Ok(())
     }
 
@@ -253,24 +240,10 @@ impl StreamWatcher {
         let mention = self.get_mention("update");
         let content = format!("{} {} switched game to **{}**!", mention, stream.user_name, game.name);
 
-        let mut request = webhook.send_message().content(&content)?;
-
+        let request = webhook.send_message().content(&content)?;
         let thumbnail = stream.get_thumbnail(client).await;
-        let files; // must have same lifetime as request
-        if let Some(thumbnail) = thumbnail {
-            let filename = "thumbnail.jpg".to_string();
-            embed = embed.image(ImageSource::attachment(&filename)?);
-            files = [Attachment::from_bytes(filename, thumbnail, 0)];
-            request = request.attachments(&files)?;
-        }
+        self.send(request, embed, thumbnail, "update").await;
 
-        let embed = embed.build();
-        if let Err(err) = request.embeds(&[embed.clone()])?.exec().await {
-            error!(
-                "[{}] Failed to send update event embed: {}\nEmbed: {:?}",
-                self.user_name, err, embed
-            );
-        }
         Ok(true)
     }
 
@@ -323,23 +296,19 @@ impl StreamWatcher {
         let duration: VideoDuration = vods.iter().map(|v| v.duration).sum();
 
         let content = format!("{} VOD from {} [{}]", mention, self.user_name, duration);
-        let mut request = webhook.send_message().content(&content)?;
+        let request = webhook.send_message().content(&content)?;
 
-        let files;
-        embed = if let Some(video) = vod {
-            if let Some(thumbnail) = video.get_thumbnail(client).await {
-                let filename = "thumbnail.jpg".to_string();
-                embed = embed.image(ImageSource::attachment(&filename)?);
-                files = [Attachment::from_bytes(filename, thumbnail, 0)];
-                request = request.attachments(&files)?;
-            }
-
-            embed
+        let thumbnail = if let Some(video) = vod {
+            embed = embed
                 .author(EmbedAuthorBuilder::new(video.title.clone()))
                 .url(&video.url)
-                .title(&video.url)
+                .title(&video.url);
+
+            video.get_thumbnail(client).await
         } else {
-            embed.author(EmbedAuthorBuilder::new("<Video Removed>".to_string()))
+            embed = embed.author(EmbedAuthorBuilder::new("<Video Removed>".to_string()));
+
+            None
         };
 
         // Build the timestamp index for each segment of the stream
@@ -349,14 +318,14 @@ impl StreamWatcher {
             .map(|s| format!("{} {}", s.vod_link(), s.game.name))
             .collect();
 
-        // Split into chunks of 1800 characters to stay below embed limits
+        // Split into chunks of 1000 characters to stay below embed limits
         // TODO: Handle case with over 6k characters properly
         let mut index = vec![];
-        let mut current = String::with_capacity(2000);
+        let mut current = String::with_capacity(1000);
         for stamp in timestamps {
-            if current.len() + stamp.len() > 1800 {
+            if current.len() + stamp.len() > 1000 {
                 index.push(current);
-                current = String::with_capacity(2000);
+                current = String::with_capacity(1000);
             }
 
             current.push_str(&stamp);
@@ -399,14 +368,40 @@ impl StreamWatcher {
             }
         }
 
-        let embed = embed.build();
-        if let Err(err) = request.embeds(&[embed.clone()])?.exec().await {
-            error!(
-                "[{}] Failed to send vod event embed: {}\nEmbed: {:?}",
-                self.user_name, err, embed
-            );
-        }
+        self.send(request, embed, thumbnail, "vod").await;
         Ok(true)
+    }
+
+    async fn send<'a>(
+        &self,
+        mut request: ExecuteWebhook<'a>,
+        mut embed: EmbedBuilder,
+        thumbnail: Option<Vec<u8>>,
+        context: &str,
+    ) {
+        let files; // must have same lifetime as request
+        if let Some(thumbnail) = thumbnail {
+            let filename = "thumbnail.jpg".to_string();
+            embed = embed.image(ImageSource::attachment(&filename).expect("Filename for thumbnail is invalid"));
+            files = [Attachment::from_bytes(filename, thumbnail, 0)];
+            request = request.attachments(&files).expect("Filename for thumbnail is invalid");
+        }
+
+        let embed = embed.build();
+        match request.embeds(&[embed.clone()]) {
+            Ok(request) => {
+                if let Err(err) = request.exec().await {
+                    error!(
+                        "[{}] Failed to send validated embed for {} event: {}",
+                        self.user_name, context, err
+                    );
+                }
+            }
+            Err(err) => error!(
+                "[{}] Tried to send invalid embed for {} event: {:?}\nEmbed: {:?}",
+                self.user_name, context, err, embed
+            ),
+        }
     }
 
     #[inline]
