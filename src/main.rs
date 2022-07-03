@@ -58,9 +58,10 @@ async fn main() -> Async {
 
     let config = Arc::new(config);
 
-    let gateway = Gateway::new(Arc::clone(&discord_client), Arc::clone(&config));
-
-    tokio::spawn(gateway.run());
+    if config.discord.enable_command {
+        let gateway = Gateway::new(Arc::clone(&discord_client), Arc::clone(&config));
+        tokio::spawn(gateway.run());
+    }
 
     let webhook_params = config.discord.stream_notifications.clone();
     let webhook = Arc::new(WebhookClient::new(discord_client, webhook_params));

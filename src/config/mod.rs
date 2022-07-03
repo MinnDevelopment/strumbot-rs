@@ -78,6 +78,8 @@ pub struct DiscordConfig {
     #[serde(default)]
     pub role_name: RoleNameConfig,
     pub enabled_events: Vec<EventName>,
+    #[serde(default = "default_true")]
+    pub enable_command: bool,
 }
 
 #[derive(Deserialize)]

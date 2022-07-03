@@ -8,7 +8,8 @@
         "vod": "",
         "update": "new game"
       },
-      "enabled_events": ["live", "update", "vod"]
+      "enabled_events": ["live", "update", "vod"],
+      "enable_command": true
     },
     "twitch": {
       "client_id": "tRSXhpTsLQtWiI7Az7HNjmFna10XTdmi",
