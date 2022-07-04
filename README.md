@@ -1,6 +1,6 @@
 [live-event]: https://raw.githubusercontent.com/MinnDevelopment/strumbot-rs/master/assets/live-event.png
 [update-event]: https://raw.githubusercontent.com/MinnDevelopment/strumbot-rs/master/assets/update-event.png
-[vod-event]: https://raw.githubusercontent.com/MinnDevelopment/strumbot/master/assets/vod-event.png
+[vod-event]: https://raw.githubusercontent.com/MinnDevelopment/strumbot-rs/master/assets/vod-event.png
 [rank-joining]: https://raw.githubusercontent.com/MinnDevelopment/strumbot-rs/master/assets/rank-joining.gif
 [example-config]: https://github.com/MinnDevelopment/strumbot-rs/blob/master/example-config.json
 
