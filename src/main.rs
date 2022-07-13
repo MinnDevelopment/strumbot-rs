@@ -121,7 +121,7 @@ async fn main() -> Async {
         }
 
         // 5. Refresh oauth token if needed and wait 10 seconds for next poll event
-        tokio::try_join!(client.refresh_auth(), sleep(Duration::from_secs(10)).map(Result::Ok))?;
+        tokio::try_join!(client.refresh_auth(), sleep(Duration::from_secs(30)).map(Result::Ok))?;
     }
 }
 
