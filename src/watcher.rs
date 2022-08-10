@@ -22,11 +22,15 @@ const fn split_duration(secs: u32) -> (u8, u8, u8) {
     (hour as u8, mins as u8, secs as u8)
 }
 
+fn empty_str() -> Box<str> {
+    "".to_owned().into_boxed_str()
+}
+
 #[derive(Deserialize, Serialize)]
 struct StreamSegment {
     game: Game,
     position: u32,
-    video_id: String,
+    video_id: Box<str>,
 }
 
 impl StreamSegment {
@@ -40,7 +44,7 @@ impl StreamSegment {
                     stream.user_name.to_lowercase(),
                     e
                 );
-                "".to_string()
+                empty_str()
             }
         };
 
@@ -83,9 +87,9 @@ pub enum WatcherState {
 
 #[derive(Deserialize, Serialize)]
 pub struct StreamWatcher {
-    pub user_name: String,
-    user_id: String,
-    stream_id: String,
+    pub user_name: Box<str>,
+    user_id: Box<str>,
+    stream_id: Box<str>,
     segments: Vec<StreamSegment>,
     start_timestamp: DateTime,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -97,9 +101,9 @@ pub struct StreamWatcher {
 impl StreamWatcher {
     pub fn new(user_name: String, config: Arc<Config>) -> Self {
         Self {
-            user_name,
-            user_id: "".to_string(),   // initialized in go_live
-            stream_id: "".to_string(), // initialized in go_live
+            user_name: user_name.into_boxed_str(),
+            user_id: empty_str(),   // initialized in go_live
+            stream_id: empty_str(), // initialized in go_live
             config,
             segments: Vec::new(),
             start_timestamp: DateTime::utc_now(),
@@ -272,7 +276,7 @@ impl StreamWatcher {
 
         let start_segment = self.segments.first().expect("Offline without any segments");
 
-        let vid = start_segment.video_id.clone();
+        let vid = start_segment.video_id.to_string();
         let vod = if vid.is_empty() {
             None
         } else {
@@ -290,7 +294,7 @@ impl StreamWatcher {
         embed = self.set_footer(embed, &self.config.discord.role_name.vod);
 
         let vods = client
-            .get_videos(self.segments.iter().map(|seg| seg.video_id.clone()).collect())
+            .get_videos(self.segments.iter().map(|seg| seg.video_id.to_string()).collect())
             .await
             .unwrap_or_default();
         let duration: VideoDuration = vods.iter().map(|v| v.duration).sum();
@@ -300,9 +304,9 @@ impl StreamWatcher {
 
         let thumbnail = if let Some(video) = vod {
             embed = embed
-                .author(EmbedAuthorBuilder::new(video.title.clone()))
-                .url(&video.url)
-                .title(&video.url);
+                .author(EmbedAuthorBuilder::new(video.title.to_string()))
+                .url(&video.url[..])
+                .title(&video.url[..]);
 
             video.get_thumbnail(client).await
         } else {
@@ -348,7 +352,7 @@ impl StreamWatcher {
         let num = self.config.twitch.top_clips.clamp(0, 5);
         if num > 0 {
             let clips = client
-                .get_top_clips(self.user_id.clone(), &self.start_timestamp, num)
+                .get_top_clips(self.user_id.to_string(), &self.start_timestamp, num)
                 .await?;
             let s: String = clips
                 .iter()
@@ -460,13 +464,13 @@ impl StreamWatcher {
     fn create_embed(&self, stream: &Stream, game: &Game) -> EmbedBuilder {
         let url = format!("https://twitch.tv/{}", stream.user_name);
         let mut embed = EmbedBuilder::new()
-            .author(EmbedAuthorBuilder::new(stream.title.clone()).build())
+            .author(EmbedAuthorBuilder::new(stream.title.to_string()).build())
             .color(0x6441A4)
             .title(&url)
             .url(&url);
 
         if !game.id.is_empty() {
-            embed = embed.field(EmbedFieldBuilder::new("Playing", &game.name).inline());
+            embed = embed.field(EmbedFieldBuilder::new("Playing", &game.name[..]).inline());
         }
 
         embed.field(

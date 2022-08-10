@@ -115,7 +115,7 @@ impl TwitchClient {
     }
 
     pub async fn get_video_by_stream(&self, stream: &Stream) -> Result<Video, RequestError> {
-        let user_id = stream.user_id.clone();
+        let user_id = stream.user_id.to_string();
         let query = build_query!(
             "type" => "archive",
             "first" => "5",
