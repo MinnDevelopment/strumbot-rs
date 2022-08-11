@@ -9,15 +9,15 @@ use crate::error::RequestError;
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct Game {
-    pub id: String,
-    pub name: String,
+    pub id: Box<str>,
+    pub name: Box<str>,
 }
 
 impl Game {
     pub fn empty() -> Self {
         Game {
-            id: "".to_string(),
-            name: "No Category".to_string(),
+            id: "".to_string().into_boxed_str(),
+            name: "No Category".to_string().into_boxed_str(),
         }
     }
 
@@ -29,9 +29,9 @@ impl Game {
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct User {
-    pub id: String,
-    pub login: String,
-    pub display_name: String,
+    pub id: Box<str>,
+    pub login: Box<str>,
+    pub display_name: Box<str>,
     // #[serde(rename = "type")]
     // pub kind: String,
     // pub broadcaster_type: String,
@@ -75,10 +75,10 @@ impl<'de> Deserialize<'de> for VideoType {
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct Video {
-    pub id: String,
-    pub url: String,
-    pub title: String,
-    pub thumbnail_url: String,
+    pub id: Box<str>,
+    pub url: Box<str>,
+    pub title: Box<str>,
+    pub thumbnail_url: Box<str>,
     pub view_count: i32,
     #[serde(rename = "type")]
     pub kind: VideoType,
@@ -98,11 +98,11 @@ impl Video {
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct Clip {
-    pub id: String,
-    pub video_id: String,
-    pub url: String,
-    pub title: String,
-    pub thumbnail_url: String,
+    pub id: Box<str>,
+    pub video_id: Box<str>,
+    pub url: Box<str>,
+    pub title: Box<str>,
+    pub thumbnail_url: Box<str>,
     pub view_count: i32,
     pub created_at: eos::DateTime,
 }
@@ -128,22 +128,22 @@ impl<'de> Deserialize<'de> for StreamType {
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct Stream {
-    pub id: String,
-    pub game_id: String,
-    pub title: String,
+    pub id: Box<str>,
+    pub game_id: Box<str>,
+    pub title: Box<str>,
     #[serde(rename = "type")]
     pub kind: StreamType,
-    pub language: String,
-    pub thumbnail_url: String,
-    pub user_id: String,
-    pub user_login: String,
-    pub user_name: String,
+    pub language: Box<str>,
+    pub thumbnail_url: Box<str>,
+    pub user_id: Box<str>,
+    pub user_login: Box<str>,
+    pub user_name: Box<str>,
     pub started_at: eos::DateTime,
 }
 
 impl Stream {
     pub async fn get_game(&self, client: &TwitchClient) -> Result<Game, RequestError> {
-        client.get_game_by_id(self.game_id.clone()).await
+        client.get_game_by_id(self.game_id.to_string()).await
     }
 
     pub async fn get_video(&self, client: &TwitchClient) -> Result<Video, RequestError> {
