@@ -4,7 +4,7 @@ use lru::LruCache;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{
-    sync::{Mutex, Arc},
+    sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
 
@@ -21,7 +21,7 @@ const RFC3339: [FormatSpec<'static>; 12] = format_spec!("%Y-%m-%dT%H:%M:%SZ");
 pub struct TwitchClient {
     oauth: OauthClient,
     identity: Mutex<Arc<Identity>>,
-    games_cache: Mutex<LruCache<String, Game>>,
+    games_cache: Mutex<LruCache<String, Arc<Game>>>,
 }
 
 impl TwitchClient {
@@ -50,7 +50,7 @@ impl TwitchClient {
         Ok(())
     }
 
-    pub async fn get_game_by_id(&self, id: String) -> Result<Game, RequestError> {
+    pub async fn get_game_by_id(&self, id: String) -> Result<Arc<Game>, RequestError> {
         if id.is_empty() {
             return Ok(Game::empty());
         }
@@ -73,7 +73,9 @@ impl TwitchClient {
             })
             .await?;
 
-        Ok(locked(&self.games_cache, |cache| {
+        let game = Arc::new(game);
+
+        Ok(locked(&self.games_cache, move |cache| {
             cache.push(key, game.clone());
             game
         }))
