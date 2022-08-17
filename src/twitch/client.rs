@@ -68,7 +68,7 @@ impl TwitchClient {
                 let mut body: TwitchData<Game> = serde_json::from_slice(&b)?;
                 match body.data.pop() {
                     Some(game) => Ok(game),
-                    None => Err(RequestError::NotFound("Game".to_string(), id)),
+                    None => Err(RequestError::NotFound("Game", id)),
                 }
             })
             .await?;
@@ -104,7 +104,7 @@ impl TwitchClient {
                 let mut body: TwitchData<Video> = serde_json::from_slice(&b)?;
                 match body.data.pop() {
                     Some(video) => Ok(video),
-                    None => Err(RequestError::NotFound("Video".to_string(), id)),
+                    None => Err(RequestError::NotFound("Video", id)),
                 }
             })
             .await
@@ -128,7 +128,7 @@ impl TwitchClient {
                     .find(|v| v.created_at >= stream.started_at); // video goes up after stream started
                 match video {
                     Some(video) => Ok(video),
-                    None => Err(RequestError::NotFound("Video".to_string(), user_id)),
+                    None => Err(RequestError::NotFound("Video", user_id)),
                 }
             })
             .await
@@ -184,7 +184,7 @@ impl TwitchClient {
         if response.status().is_success() {
             Ok(response.bytes().await?.as_ref().to_vec())
         } else if response.status().as_u16() == 404 {
-            Err(RequestError::NotFound("Thumbnail".to_string(), url.to_string()))
+            Err(RequestError::NotFound("Thumbnail", url.to_string()))
         } else {
             Err(RequestError::Http(response.status()))
         }

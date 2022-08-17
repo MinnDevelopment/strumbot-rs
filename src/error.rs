@@ -14,7 +14,7 @@ pub enum RequestError {
     Timeout,
     Unexpected(AsyncError),
     Deserialize(SerdeError),
-    NotFound(String, String),
+    NotFound(&'static str, String),
 }
 
 impl Display for RequestError {
