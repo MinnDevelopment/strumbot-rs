@@ -1,10 +1,10 @@
 use eos::fmt::{format_spec, FormatSpec};
-use log::{info, warn};
+use log::info;
 use lru::LruCache;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{
-    sync::Mutex,
+    sync::{Mutex, Arc},
     time::{Duration, Instant},
 };
 
@@ -20,27 +20,21 @@ const RFC3339: [FormatSpec<'static>; 12] = format_spec!("%Y-%m-%dT%H:%M:%SZ");
 
 pub struct TwitchClient {
     oauth: OauthClient,
-    identity: Mutex<Identity>,
+    identity: Mutex<Arc<Identity>>,
     games_cache: Mutex<LruCache<String, Game>>,
 }
 
 impl TwitchClient {
-    fn identity(&self) -> Identity {
-        match self.identity.lock() {
-            Ok(it) => it.clone(),
-            Err(poison) => {
-                warn!("Failed to lock identity mutex: {}", poison);
-                let guard = poison.get_ref();
-                Identity::clone(guard)
-            }
-        }
+    #[inline]
+    fn identity(&self) -> Arc<Identity> {
+        self.identity.lock().unwrap().clone()
     }
 
     pub async fn new(oauth: OauthClient) -> Result<TwitchClient, RequestError> {
         let identity = oauth.authorize().await?;
         Ok(Self {
             oauth,
-            identity: Mutex::new(identity),
+            identity: Mutex::new(Arc::new(identity)),
             games_cache: Mutex::new(LruCache::new(100)),
         })
     }
@@ -51,7 +45,7 @@ impl TwitchClient {
             info!("Refreshing oauth token...");
             let id = self.oauth.authorize().await?;
             let mut guard = self.identity.lock().unwrap();
-            *guard = id;
+            *guard = Arc::new(id);
         }
         Ok(())
     }
