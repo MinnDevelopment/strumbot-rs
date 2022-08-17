@@ -18,8 +18,8 @@ Rust implementation of https://github.com/MinnDevelopment/strumbot (WIP)
 - [x] Error handling
 - [x] Persistent state (serde json files)
 - [x] Unit tests
-- [ ] Optimization
-- [ ] Documentation
+- [x] Optimization
+- [x] Documentation
 - [ ] Docker release
 - [ ] Setup instructions
 
