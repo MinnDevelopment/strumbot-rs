@@ -24,7 +24,7 @@ const fn split_duration(secs: u32) -> (u8, u8, u8) {
 
 #[inline]
 fn empty_str() -> Box<str> {
-    "".to_owned().into_boxed_str()
+    "".into()
 }
 
 #[derive(Deserialize, Serialize)]
@@ -102,7 +102,7 @@ pub struct StreamWatcher {
 impl StreamWatcher {
     pub fn new(user_name: String, config: Arc<Config>) -> Self {
         Self {
-            user_name: user_name.into_boxed_str(),
+            user_name: user_name.into(),
             user_id: empty_str(),   // initialized in go_live
             stream_id: empty_str(), // initialized in go_live
             config,

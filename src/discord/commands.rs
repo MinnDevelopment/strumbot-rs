@@ -81,7 +81,7 @@ impl Gateway {
     }
 
     #[inline]
-    fn to_choice(name: &String) -> CommandOptionChoice {
+    fn to_choice(name: &str) -> CommandOptionChoice {
         CommandOptionChoice::String {
             name: name.to_string(),
             value: name.to_string(),

@@ -81,7 +81,7 @@ impl TwitchClient {
         }))
     }
 
-    pub async fn get_streams_by_login(&self, user_login: &[String]) -> Result<Vec<Stream>, RequestError> {
+    pub async fn get_streams_by_login<S: ToString>(&self, user_login: &[S]) -> Result<Vec<Stream>, RequestError> {
         let params = user_login
             .iter()
             .fold(QueryParams::builder(), |query, login| {
