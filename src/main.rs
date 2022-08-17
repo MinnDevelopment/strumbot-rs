@@ -73,8 +73,8 @@ async fn main() -> Async {
     log::info!("Connecting to Twitch...");
 
     let oauth = OauthClient::new(ClientParams {
-        client_id: config.twitch.client_id.to_string(),
-        client_secret: config.twitch.client_secret.to_string(),
+        client_id: config.twitch.client_id.clone(),
+        client_secret: config.twitch.client_secret.clone(),
     });
 
     let client = Arc::new(TwitchClient::new(oauth).await?);

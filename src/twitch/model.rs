@@ -1,4 +1,4 @@
-use std::{fmt::Display, iter::Sum, ops::Add};
+use std::{fmt::Display, iter::Sum, ops::Add, sync::Arc};
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -7,6 +7,13 @@ use serde::{Deserialize, Serialize};
 use super::TwitchClient;
 use crate::error::RequestError;
 
+static EMPTY: Lazy<Arc<Game>> = Lazy::new(|| {
+    Arc::new(Game {
+        id: "".to_string().into_boxed_str(),
+        name: "No Category".to_string().into_boxed_str(),
+    })
+});
+
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct Game {
     pub id: Box<str>,
@@ -14,15 +21,13 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn empty() -> Self {
-        Game {
-            id: "".to_string().into_boxed_str(),
-            name: "No Category".to_string().into_boxed_str(),
-        }
+    #[inline]
+    pub fn empty() -> Arc<Self> {
+        Arc::clone(&EMPTY)
     }
 
     #[inline]
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.id.is_empty()
     }
 }
@@ -142,7 +147,7 @@ pub struct Stream {
 }
 
 impl Stream {
-    pub async fn get_game(&self, client: &TwitchClient) -> Result<Game, RequestError> {
+    pub async fn get_game(&self, client: &TwitchClient) -> Result<Arc<Game>, RequestError> {
         client.get_game_by_id(self.game_id.to_string()).await
     }
 

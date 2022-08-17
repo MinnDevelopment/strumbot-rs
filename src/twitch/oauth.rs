@@ -73,7 +73,7 @@ impl OauthClient {
         let mut body = HashMap::with_capacity(3);
         body.insert("client_id", self.params.client_id.clone());
         body.insert("client_secret", self.params.client_secret.clone());
-        body.insert("grant_type", "client_credentials".to_string());
+        body.insert("grant_type", "client_credentials".into());
 
         let endpoint = "https://id.twitch.tv/oauth2/token".to_string();
 
@@ -147,7 +147,7 @@ impl OauthClient {
             let request = self
                 .http
                 .request(method.clone(), full_url.clone())
-                .header("Client-ID", &self.params.client_id)
+                .header("Client-ID", self.params.client_id.as_ref())
                 .bearer_auth(&id.access_token)
                 .build()?;
 
@@ -219,17 +219,17 @@ impl OauthClient {
 }
 
 pub struct ClientParams {
-    pub client_id: String,
-    pub client_secret: String,
+    pub client_id: Box<str>,
+    pub client_secret: Box<str>,
 }
 
 /// Client credentials identity according to https://dev.twitch.tv/docs/authentication/getting-tokens-oauth#client-credentials-grant-flow
 #[derive(Deserialize, Clone)]
 pub struct Identity {
-    pub access_token: String,
+    pub access_token: Box<str>,
     #[serde(with = "super::expires_at", rename = "expires_in")]
     pub expires_at: Instant,
-    pub token_type: String,
+    pub token_type: Box<str>,
 }
 
 impl FromStr for Identity {
@@ -255,7 +255,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(identity.access_token, "jostpf5q0uzmxmkba9iyug38kjtgh");
-        assert_eq!(identity.token_type, "bearer");
+        assert_eq!(identity.access_token.as_ref(), "jostpf5q0uzmxmkba9iyug38kjtgh");
+        assert_eq!(identity.token_type.as_ref(), "bearer");
     }
 }

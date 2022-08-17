@@ -24,7 +24,7 @@ impl WebhookClient {
 #[derive(Clone)]
 pub struct WebhookParams {
     pub id: Id<WebhookMarker>,
-    pub token: String,
+    pub token: Box<str>,
 }
 
 impl<'de> Deserialize<'de> for WebhookParams {
@@ -39,9 +39,12 @@ impl<'de> Deserialize<'de> for WebhookParams {
         let m = REGEX
             .captures(&s)
             .and_then(|c| Option::zip(c.get(1).map(|m| m.as_str()), c.get(2).map(|m| m.as_str())))
-            .and_then(|(id, token)| Option::zip(id.parse::<u64>().ok(), Some(token.to_string())));
+            .and_then(|(id, token)| Option::zip(id.parse::<u64>().ok(), Some(token)));
         match m {
-            Some((id, token)) => Ok(WebhookParams { id: Id::new(id), token }),
+            Some((id, token)) => Ok(WebhookParams {
+                id: Id::new(id),
+                token: token.into(),
+            }),
             None => Err(serde::de::Error::custom(format!(
                 "Failed to parse string using regex.\nRegex: {}\nProvided: {}",
                 REGEX.as_str(),
@@ -55,7 +58,7 @@ impl Default for WebhookParams {
     fn default() -> Self {
         Self {
             id: Id::new(1),
-            token: "".to_string(),
+            token: "".into(),
         }
     }
 }
@@ -78,7 +81,7 @@ mod tests {
         let params = holder.url;
         assert_eq!(params.id, Id::new(983342910521090131));
         assert_eq!(
-            params.token,
+            params.token.as_ref(),
             "6iwWTd-VHL7yzlJ_W1SWagLBVtTbJK8NhlMFpnjkibU5UYqjC0KgfDrTPdxUC7fdSJlD"
         );
     }

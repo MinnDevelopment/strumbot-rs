@@ -22,19 +22,20 @@ const fn split_duration(secs: u32) -> (u8, u8, u8) {
     (hour as u8, mins as u8, secs as u8)
 }
 
+#[inline]
 fn empty_str() -> Box<str> {
-    "".to_owned().into_boxed_str()
+    "".into()
 }
 
 #[derive(Deserialize, Serialize)]
 struct StreamSegment {
-    game: Game,
+    game: Arc<Game>,
     position: u32,
     video_id: Box<str>,
 }
 
 impl StreamSegment {
-    async fn from(client: &Arc<TwitchClient>, stream: &Stream, game: &Game) -> Self {
+    async fn from(client: &Arc<TwitchClient>, stream: &Stream, game: Arc<Game>) -> Self {
         let position = eos::DateTime::utc_now().duration_since(&stream.started_at).as_secs() as u32;
         let video_id = match stream.get_video(client).await {
             Ok(v) => v.id,
@@ -49,7 +50,7 @@ impl StreamSegment {
         };
 
         Self {
-            game: game.clone(),
+            game,
             position,
             video_id,
         }
@@ -101,7 +102,7 @@ pub struct StreamWatcher {
 impl StreamWatcher {
     pub fn new(user_name: String, config: Arc<Config>) -> Self {
         Self {
-            user_name: user_name.into_boxed_str(),
+            user_name: user_name.into(),
             user_id: empty_str(),   // initialized in go_live
             stream_id: empty_str(), // initialized in go_live
             config,
@@ -281,7 +282,7 @@ impl StreamWatcher {
             None
         } else {
             match client.get_video_by_id(vid).await {
-                Ok(vid) => Some(vid),
+                Ok(video) => Some(video),
                 Err(e) => {
                     error!("[{}] Failed to get VOD for offline stream: {}", self.user_name, e);
                     None
@@ -305,8 +306,8 @@ impl StreamWatcher {
         let thumbnail = if let Some(video) = vod {
             embed = embed
                 .author(EmbedAuthorBuilder::new(video.title.to_string()))
-                .url(&video.url[..])
-                .title(&video.url[..]);
+                .url(video.url.as_ref())
+                .title(video.url.as_ref());
 
             video.get_thumbnail(client).await
         } else {
@@ -388,16 +389,18 @@ impl StreamWatcher {
         thumbnail: Option<Vec<u8>>,
         context: &str,
     ) {
+        const FILENAME: &str = "thumbnail.jpg";
+        const INVALID_NAME: &str = "Filename for thumbnail is invalid";
+
         let files; // must have same lifetime as request
         if let Some(thumbnail) = thumbnail {
-            let filename = "thumbnail.jpg".to_string();
-            embed = embed.image(ImageSource::attachment(&filename).expect("Filename for thumbnail is invalid"));
-            files = [Attachment::from_bytes(filename, thumbnail, 0)];
-            request = request.attachments(&files).expect("Filename for thumbnail is invalid");
+            embed = embed.image(ImageSource::attachment(FILENAME).expect(INVALID_NAME));
+            files = [Attachment::from_bytes(FILENAME.to_string(), thumbnail, 0)];
+            request = request.attachments(&files).expect(INVALID_NAME);
         }
 
-        let embed = embed.build();
-        match request.embeds(&[embed.clone()]) {
+        let embeds = [embed.build()];
+        match request.embeds(&embeds) {
             Ok(request) => {
                 if let Err(err) = request.exec().await {
                     error!(
@@ -408,7 +411,7 @@ impl StreamWatcher {
             }
             Err(err) => error!(
                 "[{}] Tried to send invalid embed for {} event: {:?}\nEmbed: {:?}",
-                self.user_name, context, err, embed
+                self.user_name, context, err, embeds[0]
             ),
         }
     }
@@ -429,7 +432,7 @@ impl StreamWatcher {
             Err(e) => return Err(e),
         };
 
-        let segment = StreamSegment::from(client, stream, &game).await;
+        let segment = StreamSegment::from(client, stream, game).await;
         self.segments.push(segment);
         Ok(self.segments.last_mut().unwrap())
     }
@@ -470,7 +473,7 @@ impl StreamWatcher {
             .url(&url);
 
         if !game.id.is_empty() {
-            embed = embed.field(EmbedFieldBuilder::new("Playing", &game.name[..]).inline());
+            embed = embed.field(EmbedFieldBuilder::new("Playing", game.name.as_ref()).inline());
         }
 
         embed.field(

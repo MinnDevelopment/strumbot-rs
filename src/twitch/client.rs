@@ -1,10 +1,10 @@
 use eos::fmt::{format_spec, FormatSpec};
-use log::{info, warn};
+use log::info;
 use lru::LruCache;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{
-    sync::Mutex,
+    sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
 
@@ -20,27 +20,21 @@ const RFC3339: [FormatSpec<'static>; 12] = format_spec!("%Y-%m-%dT%H:%M:%SZ");
 
 pub struct TwitchClient {
     oauth: OauthClient,
-    identity: Mutex<Identity>,
-    games_cache: Mutex<LruCache<String, Game>>,
+    identity: Mutex<Arc<Identity>>,
+    games_cache: Mutex<LruCache<String, Arc<Game>>>,
 }
 
 impl TwitchClient {
-    fn identity(&self) -> Identity {
-        match self.identity.lock() {
-            Ok(it) => it.clone(),
-            Err(poison) => {
-                warn!("Failed to lock identity mutex: {}", poison);
-                let guard = poison.get_ref();
-                Identity::clone(guard)
-            }
-        }
+    #[inline]
+    fn identity(&self) -> Arc<Identity> {
+        self.identity.lock().unwrap().clone()
     }
 
     pub async fn new(oauth: OauthClient) -> Result<TwitchClient, RequestError> {
         let identity = oauth.authorize().await?;
         Ok(Self {
             oauth,
-            identity: Mutex::new(identity),
+            identity: Mutex::new(Arc::new(identity)),
             games_cache: Mutex::new(LruCache::new(100)),
         })
     }
@@ -51,12 +45,12 @@ impl TwitchClient {
             info!("Refreshing oauth token...");
             let id = self.oauth.authorize().await?;
             let mut guard = self.identity.lock().unwrap();
-            *guard = id;
+            *guard = Arc::new(id);
         }
         Ok(())
     }
 
-    pub async fn get_game_by_id(&self, id: String) -> Result<Game, RequestError> {
+    pub async fn get_game_by_id(&self, id: String) -> Result<Arc<Game>, RequestError> {
         if id.is_empty() {
             return Ok(Game::empty());
         }
@@ -74,18 +68,20 @@ impl TwitchClient {
                 let mut body: TwitchData<Game> = serde_json::from_slice(&b)?;
                 match body.data.pop() {
                     Some(game) => Ok(game),
-                    None => Err(RequestError::NotFound("Game".to_string(), id)),
+                    None => Err(RequestError::NotFound("Game", id)),
                 }
             })
             .await?;
 
-        Ok(locked(&self.games_cache, |cache| {
+        let game = Arc::new(game);
+
+        Ok(locked(&self.games_cache, move |cache| {
             cache.push(key, game.clone());
             game
         }))
     }
 
-    pub async fn get_streams_by_login(&self, user_login: &[String]) -> Result<Vec<Stream>, RequestError> {
+    pub async fn get_streams_by_login<S: ToString>(&self, user_login: &[S]) -> Result<Vec<Stream>, RequestError> {
         let params = user_login
             .iter()
             .fold(QueryParams::builder(), |query, login| {
@@ -108,7 +104,7 @@ impl TwitchClient {
                 let mut body: TwitchData<Video> = serde_json::from_slice(&b)?;
                 match body.data.pop() {
                     Some(video) => Ok(video),
-                    None => Err(RequestError::NotFound("Video".to_string(), id)),
+                    None => Err(RequestError::NotFound("Video", id)),
                 }
             })
             .await
@@ -132,7 +128,7 @@ impl TwitchClient {
                     .find(|v| v.created_at >= stream.started_at); // video goes up after stream started
                 match video {
                     Some(video) => Ok(video),
-                    None => Err(RequestError::NotFound("Video".to_string(), user_id)),
+                    None => Err(RequestError::NotFound("Video", user_id)),
                 }
             })
             .await
@@ -188,7 +184,7 @@ impl TwitchClient {
         if response.status().is_success() {
             Ok(response.bytes().await?.as_ref().to_vec())
         } else if response.status().as_u16() == 404 {
-            Err(RequestError::NotFound("Thumbnail".to_string(), url.to_string()))
+            Err(RequestError::NotFound("Thumbnail", url.to_string()))
         } else {
             Err(RequestError::Http(response.status()))
         }

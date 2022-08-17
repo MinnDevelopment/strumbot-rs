@@ -28,9 +28,9 @@ const fn default_true() -> bool {
 
 #[derive(Deserialize, Default)]
 pub struct TwitchConfig {
-    pub client_id: String,
-    pub client_secret: String,
-    pub user_login: Vec<String>,
+    pub client_id: Box<str>,
+    pub client_secret: Box<str>,
+    pub user_login: Vec<Box<str>>,
     #[serde(default = "default_top_clips")]
     pub top_clips: u8,
     #[serde(default = "default_grace_period")]
@@ -40,17 +40,18 @@ pub struct TwitchConfig {
 #[derive(Deserialize, Default, Clone)]
 pub struct RoleNameConfig {
     #[serde(default)]
-    pub live: String,
+    pub live: Box<str>,
     #[serde(default)]
-    pub vod: String,
+    pub vod: Box<str>,
     #[serde(default)]
-    pub update: String,
+    pub update: Box<str>,
 }
 
 impl RoleNameConfig {
-    pub fn values(&self) -> Vec<&String> {
+    pub fn values(&self) -> Vec<&str> {
         vec![&self.live, &self.vod, &self.update]
             .into_iter()
+            .map(Box::as_ref)
             .filter(|s| !s.is_empty())
             .collect()
     }
@@ -68,9 +69,9 @@ pub enum EventName {
 
 #[derive(Deserialize, Default)]
 pub struct DiscordConfig {
-    pub token: String,
+    pub token: Box<str>,
     #[serde(rename = "server_id", skip_serializing_if = "Option::is_none")]
-    pub guild_id: Option<String>,
+    pub guild_id: Option<Box<str>>,
     pub stream_notifications: WebhookParams,
     pub logging: Option<WebhookParams>,
     #[serde(default = "default_true")]
@@ -135,9 +136,9 @@ impl Config {
     async fn init_roles_from_guild(&mut self, client: &Client, guild: Guild) {
         let role_name = &self.discord.role_name;
         let mut names = HashMap::with_capacity(3);
-        names.insert(role_name.live.to_string().to_lowercase(), "live");
-        names.insert(role_name.update.to_string().to_lowercase(), "update");
-        names.insert(role_name.vod.to_string().to_lowercase(), "vod");
+        names.insert(role_name.live.to_lowercase(), "live");
+        names.insert(role_name.update.to_lowercase(), "update");
+        names.insert(role_name.vod.to_lowercase(), "vod");
         let mut not_found: HashSet<&String> = names.keys().collect();
 
         for role in guild.roles {
@@ -197,21 +198,21 @@ mod tests {
             role_map: _,
         } = serde_json::from_slice(&file).unwrap();
 
-        assert_eq!(twitch.client_id, "tRSXhpTsLQtWiI7Az7HNjmFna10XTdmi");
-        assert_eq!(twitch.client_secret, "BJW8uMosDo02LcdU25u8dC95YTVBVZmy");
-        assert_eq!(twitch.user_login, vec!["Elajjaz", "distortion2"]);
+        assert_eq!(twitch.client_id.as_ref(), "tRSXhpTsLQtWiI7Az7HNjmFna10XTdmi");
+        assert_eq!(twitch.client_secret.as_ref(), "BJW8uMosDo02LcdU25u8dC95YTVBVZmy");
+        assert_eq!(twitch.user_login, vec!["Elajjaz".into(), "distortion2".into()]);
         assert_eq!(twitch.top_clips, 5);
         assert_eq!(twitch.offline_grace_period, 2);
 
         assert_eq!(discord.guild_id, Some("81384788765712384".into()));
         assert_eq!(
-            discord.token,
+            discord.token.as_ref(),
             "MzgwNDY1NTU1MzU1OTkyMDcw.GDPnv6.FC4xX7mQn3rPV-MkiVboQPWHrv88u4y5aS9NGc"
         );
 
         assert_eq!(discord.stream_notifications.id, Id::new(983342910521090131));
         assert_eq!(
-            discord.stream_notifications.token,
+            discord.stream_notifications.token.as_ref(),
             "6iwWTd-VHL7yzlJ_W1SWagLBVtTbJK8NhlMFpnjkibU5UYqjC0KgfDrTPdxUC7fdSJlD"
         );
 
@@ -220,9 +221,9 @@ mod tests {
         assert!(discord.enabled_events.contains(&EventName::Vod));
 
         let role_names = discord.role_name;
-        assert_eq!(role_names.live, "live");
-        assert_eq!(role_names.update, "new game");
-        assert_eq!(role_names.vod, "");
+        assert_eq!(role_names.live.as_ref(), "live");
+        assert_eq!(role_names.update.as_ref(), "new game");
+        assert_eq!(role_names.vod.as_ref(), "");
 
         assert!(!cache.enabled);
     }
