@@ -6,10 +6,10 @@ use twilight_http::Client;
 use twilight_model::{
     application::{
         command::{ChoiceCommandOptionData, CommandOption, CommandOptionChoice},
-        interaction::{application_command::CommandOptionValue, Interaction},
+        interaction::{application_command::CommandOptionValue, Interaction, InteractionData},
     },
     channel::message::MessageFlags,
-    gateway::payload::incoming::{InteractionCreate, Ready},
+    gateway::payload::incoming::Ready,
     http::interaction::{InteractionResponse, InteractionResponseData, InteractionResponseType},
     id::{
         marker::{GuildMarker, RoleMarker},
@@ -56,14 +56,14 @@ impl Gateway {
     }
 
     pub async fn run(mut self) -> Result<(), AsyncError> {
-        let (shard, mut events) = Shard::new(self.http.token().unwrap().into(), Self::INTENTS).await?;
+        let (shard, mut events) = Shard::new(self.http.token().unwrap().into(), Self::INTENTS);
 
         shard.start().await?;
         log::info!("Connection established");
 
         while let Some(event) = events.next().await {
             match event {
-                Event::InteractionCreate(InteractionCreate(interaction)) => {
+                Event::InteractionCreate(interaction) => {
                     self.on_interaction(&interaction).await;
                 }
                 Event::Ready(e) => {
@@ -188,19 +188,19 @@ impl Gateway {
     }
 
     async fn on_interaction(&self, interaction: &Interaction) {
-        let command = match interaction {
-            Interaction::ApplicationCommand(command) => command,
+        let command = match interaction.data {
+            Some(InteractionData::ApplicationCommand(ref command)) => command,
             _ => return,
         };
 
-        if command.data.name != "notify" {
-            log::debug!("Ignoring unknown command: {}", command.data.name);
+        if command.name != "notify" {
+            log::debug!("Ignoring unknown command: {}", command.name);
             return;
         }
 
-        let client = self.http.interaction(interaction.application_id());
+        let client = self.http.interaction(interaction.application_id);
         if let Err(e) = client
-            .create_response(interaction.id(), interaction.token(), &Self::DEFER)
+            .create_response(interaction.id, &interaction.token, &Self::DEFER)
             .exec()
             .await
         {
@@ -208,7 +208,7 @@ impl Gateway {
             return;
         }
 
-        let option = match command.data.options.iter().find(|o| o.name == "role") {
+        let option = match command.options.iter().find(|o| o.name == "role") {
             Some(o) => o,
             None => return,
         };
@@ -228,8 +228,8 @@ impl Gateway {
             None => return,
         };
 
-        let member = command.member.as_ref().expect("Command without member in a guild");
-        let user_id = command.author_id().expect("Command without author id");
+        let member = interaction.member.as_ref().expect("Command without member in a guild");
+        let user_id = interaction.author_id().expect("Command without author id");
 
         let res = if member.roles.contains(&role) {
             self.http.remove_guild_member_role(guild, user_id, role).exec().await
@@ -249,7 +249,7 @@ impl Gateway {
         }
 
         let res = client
-            .create_followup(interaction.token())
+            .create_followup(&interaction.token)
             .content("Your roles have been updated!")
             .expect("Failed to create followup!")
             .exec()
