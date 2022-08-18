@@ -1,4 +1,4 @@
-FROM rust:1.61 as deps
+FROM rust:latest as deps
 
 RUN USER=root cargo new --bin strumbot
 WORKDIR /strumbot
@@ -10,9 +10,11 @@ RUN cargo build --release
 RUN rm src/*.rs
 RUN rm ./target/release/deps/strumbot*
 
+
 FROM debian:buster as libs
 
-FROM rust:1.61 as build
+
+FROM rust:latest as build
 
 WORKDIR /strumbot
 
@@ -23,7 +25,6 @@ COPY ./Cargo.toml ./Cargo.toml
 COPY ./src ./src
 
 RUN cargo build --release
-
 
 
 FROM gcr.io/distroless/cc
