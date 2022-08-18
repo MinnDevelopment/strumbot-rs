@@ -23,7 +23,7 @@ default-features = false
 features = ["tokio-runtime"]
 
 [dependencies.twilight-util]
-version = "0.11"
+version = "0.13"
 default-features = false
 features = ["builder"]
 
