@@ -7,6 +7,7 @@
 # strumbot-rs
 
 [![tests](https://github.com/MinnDevelopment/strumbot-rs/actions/workflows/tests.yml/badge.svg)](https://github.com/MinnDevelopment/strumbot-rs/actions/workflows/tests.yml)
+[ ![docker-pulls](https://img.shields.io/docker/pulls/minnced/strumbot-rs?logo=docker&logoColor=white) ](https://hub.docker.com/r/minnced/strumbot-rs)
 
 A Twitch Stream Notification Bot. This will send notifications to a webhook in your Discord server when the subscribed streamer goes live or changes their game.
 
@@ -20,7 +21,7 @@ Rust implementation of https://github.com/MinnDevelopment/strumbot (WIP)
 - [x] Unit tests
 - [x] Optimization
 - [x] Documentation
-- [ ] Docker release
+- [x] Docker release
 - [ ] Setup instructions
 
 ## Configurations
