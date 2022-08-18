@@ -11,19 +11,6 @@
 
 A Twitch Stream Notification Bot. This will send notifications to a webhook in your Discord server when the subscribed streamer goes live or changes their game.
 
-Rust implementation of https://github.com/MinnDevelopment/strumbot (WIP)
-
-## TODO
-
-- [x] Slash Commands for role updates (I think discord is adding a first-party role joining features anyway)
-- [x] Error handling
-- [x] Persistent state (serde json files)
-- [x] Unit tests
-- [x] Optimization
-- [x] Documentation
-- [x] Docker release
-- [ ] Setup instructions
-
 ## Configurations
 
 The configuration file must be called `config.json` and has to be in the working directory. An example configuration can be found in [`example-config.json`][example-config].
@@ -107,3 +94,34 @@ You can omit the entire cache config, to use the recommended defaults.
 }
 ```
 
+# Docker Setup
+
+An example setup would be a folder like this:
+
+```
+strumbot/
+|- docker-compose.yml
+|- config.json
+\- cache/
+```
+
+The config file should be populated as described above. The cache directory should be an empty directory that will be used as a persistent state database between container restarts.
+
+Your docker-compose.yml should then be configured this way:
+
+```yml
+version: "2.2"
+
+services:
+    strumbot:
+        image: minnced/strumbot-rs:0.1.0
+        volumes:
+            - ./cache:/app/.cache # The hosted cache directory as a local volume
+            - ./config.json:/app/config.json # Your config file is also available inside the container as a volume
+        restart: unless-stopped # This will restart the app if it crashes for some reason
+        container_name: strumbot # Easy accessible container name
+```
+
+Once you have this setup, you can start the service with `docker compose build && docker compose up -d`. This will pull the image from [Docker Hub](https://hub.docker.com/r/minnced/strumbot-rs) and start it as a daemon.
+
+To access the logs, you can use `docker logs strumbot`.
