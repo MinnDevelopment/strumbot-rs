@@ -1,4 +1,5 @@
-use std::{collections::HashMap, str::FromStr, sync::Arc};
+use hashbrown::HashMap;
+use std::{str::FromStr, sync::Arc};
 
 use futures::StreamExt;
 use twilight_gateway::{Event, Intents, Shard};
@@ -34,6 +35,8 @@ impl Gateway {
     const DEFER: InteractionResponse = InteractionResponse {
         kind: InteractionResponseType::DeferredChannelMessageWithSource,
         data: Some(InteractionResponseData {
+            flags: Some(MessageFlags::EPHEMERAL),
+            tts: Some(false),
             allowed_mentions: None,
             attachments: None,
             choices: None,
@@ -41,9 +44,7 @@ impl Gateway {
             content: None,
             custom_id: None,
             embeds: None,
-            flags: Some(MessageFlags::EPHEMERAL),
             title: None,
-            tts: None,
         }),
     };
 
@@ -199,11 +200,10 @@ impl Gateway {
         }
 
         let client = self.http.interaction(interaction.application_id);
-        if let Err(e) = client
+        let future = client
             .create_response(interaction.id, &interaction.token, &Self::DEFER)
-            .exec()
-            .await
-        {
+            .exec();
+        if let Err(e) = future.await {
             log::error!("Failed to respond to interaction: {}", e);
             return;
         }

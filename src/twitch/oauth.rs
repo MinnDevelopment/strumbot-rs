@@ -1,5 +1,5 @@
+use hashbrown::HashMap;
 use std::{
-    collections::HashMap,
     str::FromStr,
     time::{Duration, Instant},
 };

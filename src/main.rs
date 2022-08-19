@@ -5,11 +5,8 @@ use crate::{
 use config::Config;
 use database::{Database, DatabaseError, FileDatabase};
 use futures::FutureExt;
-use std::{
-    collections::{HashMap, HashSet},
-    sync::Arc,
-    time::Duration,
-};
+use hashbrown::{HashMap, HashSet};
+use std::{sync::Arc, time::Duration};
 use tokio::{fs, sync::mpsc, time::sleep};
 use twilight_http::Client;
 use twitch::TwitchClient;
