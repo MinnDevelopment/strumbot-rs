@@ -1,4 +1,4 @@
-name: Publish Artifact
+name: Publish Artifacts
 
 on:
   push:
@@ -23,10 +23,10 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: strumbot
+          name: Linux x64
           path: target/release/strumbot
   windows:
-    name: Artifact Linux (x64)
+    name: Artifact Windows (x64)
     runs-on: windows-2019
     steps:
       - name: Checkout sources
@@ -42,10 +42,10 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: strumbot.exe
+          name: Windows x64
           path: target/release/strumbot.exe
   macos:
-    name: Artifact Linux (x64)
+    name: Artifact macOS (Universal)
     runs-on: macos-latest
     steps:
       - name: Checkout sources
@@ -69,5 +69,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
-          name: strumbot
+          name: macOS universal
           path: universal-strumbot
