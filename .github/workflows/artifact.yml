@@ -8,7 +8,9 @@ on:
 jobs:
   linux:
     name: Artifact Linux (x64)
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
+    container:
+      image: ubuntu:16.04
     steps:
       - name: Checkout sources
         uses: actions/checkout@v2
