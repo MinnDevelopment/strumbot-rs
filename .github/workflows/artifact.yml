@@ -1,0 +1,73 @@
+name: Publish Artifact
+
+on:
+  push:
+    branches: [ "master" ]
+    paths-ignore: [ '*.md' ]
+
+jobs:
+  linux:
+    name: Artifact Linux (x64)
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af #@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Build Artifact
+        run: cargo build -r
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: strumbot
+          path: target/release/strumbot
+  windows:
+    name: Artifact Linux (x64)
+    runs-on: windows-2019
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af #@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Build Artifact
+        run: cargo build -r
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: strumbot.exe
+          path: target/release/strumbot.exe
+  macos:
+    name: Artifact Linux (x64)
+    runs-on: macos-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af #@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          target: x86_64-apple-darwin
+      - name: Build Artifact (x64)
+        run: cargo build -r --target=x86_64-apple-darwin
+      - name: Build Artifact (M1)
+        run: |
+          rustup target add aarch64-apple-darwin
+          cargo build -r --target=aarch64-apple-darwin
+      - name: Combine Universal Darwin
+        run:
+          lipo -create -output universal-strumbot target/**/release/strumbot
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: strumbot
+          path: universal-strumbot
