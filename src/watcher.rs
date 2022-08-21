@@ -1,8 +1,8 @@
 use std::{num::NonZeroU64, sync::Arc};
 
 use eos::DateTime;
-use log::{error, info};
 use serde::{Deserialize, Serialize};
+use tracing as log;
 use twilight_http::request::channel::webhook::ExecuteWebhook;
 use twilight_model::{channel::embed::EmbedFooter, http::attachment::Attachment};
 use twilight_util::builder::embed::{EmbedAuthorBuilder, EmbedBuilder, EmbedFieldBuilder, ImageSource};
@@ -40,7 +40,7 @@ impl StreamSegment {
         let video_id = match stream.get_video(client).await {
             Ok(v) => v.id,
             Err(e) => {
-                error!(
+                log::error!(
                     "[{}] Failed to get video for stream: {}",
                     stream.user_name.to_lowercase(),
                     e
@@ -163,7 +163,7 @@ impl StreamWatcher {
 
         let mention = self.get_mention("live");
         let user_name = &stream.user_name;
-        info!("[{}] User started streaming {}", self.user_name, game.name);
+        log::info!("[{}] User started streaming {}", self.user_name, game.name);
 
         if self.is_skipped(EventName::Live) {
             return Ok(());
@@ -220,13 +220,15 @@ impl StreamWatcher {
 
         // If the game didn't change, we don't need to send any announcement
         if !game_change {
-            info!("[{}] Vod for current stream changed.", self.user_name);
+            log::info!("[{}] Vod for current stream changed.", self.user_name);
             return Ok(true);
         }
 
-        info!(
+        log::info!(
             "[{}] Stream changed game: {} -> {}",
-            self.user_name, old_game.name, game.name
+            self.user_name,
+            old_game.name,
+            game.name
         );
 
         if self.is_skipped(EventName::Update) {
@@ -267,7 +269,7 @@ impl StreamWatcher {
             }
         }
 
-        info!("[{}] stream went offline", self.user_name);
+        log::info!("[{}] stream went offline", self.user_name);
 
         if self.is_skipped(EventName::Vod) {
             self.segments.clear();
@@ -284,7 +286,7 @@ impl StreamWatcher {
             match client.get_video_by_id(vid).await {
                 Ok(video) => Some(video),
                 Err(e) => {
-                    error!("[{}] Failed to get VOD for offline stream: {}", self.user_name, e);
+                    log::error!("[{}] Failed to get VOD for offline stream: {}", self.user_name, e);
                     None
                 }
             }
@@ -403,15 +405,20 @@ impl StreamWatcher {
         match request.embeds(&embeds) {
             Ok(request) => {
                 if let Err(err) = request.exec().await {
-                    error!(
+                    log::error!(
                         "[{}] Failed to send validated embed for {} event: {}",
-                        self.user_name, context, err
+                        self.user_name,
+                        context,
+                        err
                     );
                 }
             }
-            Err(err) => error!(
+            Err(err) => log::error!(
                 "[{}] Tried to send invalid embed for {} event: {:?}\nEmbed: {:?}",
-                self.user_name, context, err, embeds[0]
+                self.user_name,
+                context,
+                err,
+                embeds[0]
             ),
         }
     }
@@ -425,7 +432,7 @@ impl StreamWatcher {
         let game = match stream.get_game(client).await {
             Ok(g) => g,
             Err(RequestError::Deserialize(e)) => {
-                error!("[{}] Failed to deserialize game: {}", self.user_name, e);
+                log::error!("[{}] Failed to deserialize game: {}", self.user_name, e);
                 Game::empty()
             }
             Err(RequestError::NotFound(_, _)) => Game::empty(),

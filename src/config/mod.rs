@@ -1,8 +1,8 @@
 use hashbrown::{HashMap, HashSet};
 
 use errors::InitError;
-use log::{error, info, warn};
 use serde::Deserialize;
+use tracing as log;
 use twilight_http::Client;
 use twilight_model::{
     guild::{Guild, Permissions},
@@ -146,9 +146,11 @@ impl Config {
             if let Some(event) = names.get(name) {
                 let owned = event.to_string();
                 not_found.remove(name);
-                info!(
+                log::info!(
                     "Found notification role for {} event: {} (id={})",
-                    event, role.name, role.id
+                    event,
+                    role.name,
+                    role.id
                 );
                 self.role_map.insert(owned, role.id.to_string());
             }
@@ -170,13 +172,13 @@ impl Config {
 
             match response.await {
                 Err(err) => {
-                    error!("Could not create roles due to error: {err:?}");
-                    warn!("Make sure the bot has permissions to manage roles in your server. Missing: {name:?}");
+                    log::error!("Could not create roles due to error: {err:?}");
+                    log::warn!("Make sure the bot has permissions to manage roles in your server. Missing: {name:?}");
                     break;
                 }
                 Ok(role) => {
                     let event = names.get(name).unwrap().to_string();
-                    info!("Created role with name {name:?} for {event:?} event");
+                    log::info!("Created role with name {name:?} for {event:?} event");
                     self.role_map.insert(event, role.id.to_string());
                 }
             }

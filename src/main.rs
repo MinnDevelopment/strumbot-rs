@@ -8,6 +8,7 @@ use futures::FutureExt;
 use hashbrown::{HashMap, HashSet};
 use std::{sync::Arc, time::Duration};
 use tokio::{fs, sync::mpsc, time::sleep};
+use tracing as log;
 use twilight_http::Client;
 use twitch::TwitchClient;
 use watcher::{StreamUpdate, StreamWatcher, WatcherState};
@@ -26,7 +27,7 @@ type Cache = FileDatabase;
 
 #[tokio::main]
 async fn main() -> Async {
-    simple_logger::init_with_level(log::Level::Info).unwrap();
+    tracing_subscriber::fmt::init();
 
     let config: String = match tokio::fs::read_to_string("config.json").await {
         Ok(conf) => conf,

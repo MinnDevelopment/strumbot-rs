@@ -1,5 +1,4 @@
 use eos::fmt::{format_spec, FormatSpec};
-use log::info;
 use lru::LruCache;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -7,6 +6,7 @@ use std::{
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
+use tracing as log;
 
 use super::{
     oauth::{Identity, OauthClient, QueryParams},
@@ -42,7 +42,7 @@ impl TwitchClient {
     pub async fn refresh_auth(&self) -> Result<(), RequestError> {
         let identity = self.identity();
         if identity.expires_at < Instant::now() + Duration::from_secs(600) {
-            info!("Refreshing oauth token...");
+            log::info!("Refreshing oauth token...");
             let id = self.oauth.authorize().await?;
             let mut guard = self.identity.lock().unwrap();
             *guard = Arc::new(id);

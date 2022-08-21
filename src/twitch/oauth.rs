@@ -3,6 +3,7 @@ use std::{
     str::FromStr,
     time::{Duration, Instant},
 };
+use tracing as log;
 
 use bytes::Bytes;
 use log::{error, warn};

@@ -2,6 +2,7 @@ use hashbrown::HashMap;
 use std::{str::FromStr, sync::Arc};
 
 use futures::StreamExt;
+use tracing as log;
 use twilight_gateway::{Event, Intents, Shard};
 use twilight_http::Client;
 use twilight_model::{
