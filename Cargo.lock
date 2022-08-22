@@ -250,7 +250,7 @@ dependencies = [
 [[package]]
 name = "eos"
 version = "0.1.0"
-source = "git+https://github.com/Rapptz/eos#9814bae68f6b1d9e19c1b23f5e5a304284e2d31f"
+source = "git+https://github.com/Rapptz/eos#b1be8407f44b6c78bfefef1e40b22cd75cfc0cba"
 dependencies = [
  "eos-format-spec-macro",
  "libc",
@@ -260,7 +260,7 @@ dependencies = [
 [[package]]
 name = "eos-format-spec-macro"
 version = "0.1.0"
-source = "git+https://github.com/Rapptz/eos#9814bae68f6b1d9e19c1b23f5e5a304284e2d31f"
+source = "git+https://github.com/Rapptz/eos#b1be8407f44b6c78bfefef1e40b22cd75cfc0cba"
 
 [[package]]
 name = "flate2"
