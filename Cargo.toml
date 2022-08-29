@@ -53,7 +53,7 @@ features = ["rc"]
 version = "1.6"
 
 [dependencies.tokio]
-version = "1.0"
+version = "1.20"
 features = ["macros", "rt-multi-thread", "fs", "sync"]
 default-features = false
 
