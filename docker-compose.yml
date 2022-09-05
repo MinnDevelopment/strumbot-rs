@@ -2,6 +2,6 @@ version: "2.2"
 
 services:
     strumbot:
-        image: minnced/strumbot-rs:1.0.2
+        image: minnced/strumbot-rs:1.0.3
         build:
             dockerfile: Dockerfile
