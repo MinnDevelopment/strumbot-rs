@@ -269,11 +269,10 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "form_urlencoded"
-version = "1.0.1"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fc25a87fa4fd2094bffb06925852034d90a17f0d1e05197d4956d3555752191"
+checksum = "a9c384f161156f5260c24a097c56119f9be8c798586aecc13afbcbe7b7e26bf8"
 dependencies = [
- "matches",
  "percent-encoding",
 ]
 
@@ -506,6 +505,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "418a0a6fab821475f634efe3ccc45c013f742efe03d853e8d3355d5cb850ecf8"
 dependencies = [
  "matches",
+ "unicode-bidi",
+ "unicode-normalization",
+]
+
+[[package]]
+name = "idna"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e14ddfc70884202db2244c223200c204c2bda1bc6e0998d11b5e024d657209e6"
+dependencies = [
  "unicode-bidi",
  "unicode-normalization",
 ]
@@ -747,9 +756,9 @@ dependencies = [
 
 [[package]]
 name = "percent-encoding"
-version = "2.1.0"
+version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
+checksum = "478c572c3d73181ff3c2539045f6eb99e5491218eae919370993b890cdbdd98e"
 
 [[package]]
 name = "pin-project-lite"
@@ -1276,9 +1285,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-util"
-version = "0.7.3"
+version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc463cd8deddc3770d20f9852143d50bf6094e640b485cb2e189a2099085ff45"
+checksum = "0bb2e075f03b3d66d8d8785356224ba688d2906a371015e225beeb65ca92c740"
 dependencies = [
  "bytes",
  "futures-core",
@@ -1365,7 +1374,7 @@ dependencies = [
  "futures-channel",
  "futures-io",
  "futures-util",
- "idna",
+ "idna 0.2.3",
  "ipnet",
  "lazy_static",
  "log",
@@ -1426,9 +1435,9 @@ dependencies = [
 
 [[package]]
 name = "twilight-gateway"
-version = "0.13.0"
+version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a461bda77e2c634d1b2511ab094908f05a1977e8d963940a26b4eca8fb37c2c2"
+checksum = "e5fd0fa1ef021ac6bc3027e2feae5743c8ee62072a56b0f947ed67bb5709fb02"
 dependencies = [
  "bitflags",
  "flate2",
@@ -1481,9 +1490,9 @@ dependencies = [
 
 [[package]]
 name = "twilight-http-ratelimiting"
-version = "0.13.1"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b75d1f386856ab4e769d26f31c76f6eacd55ae6125d288d1fc68c75632012f9e"
+checksum = "effb20caaa9acad1036e37a14102cc999e254e929f2013b11057a544ec8d0ada"
 dependencies = [
  "futures-util",
  "http",
@@ -1493,9 +1502,9 @@ dependencies = [
 
 [[package]]
 name = "twilight-model"
-version = "0.13.2"
+version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60367fe4ab87ac8ebd31077add81282cb99cc8519060834d5fed77521ab2d97b"
+checksum = "a586bb38f14ac8282a7c032c146ce49a8d419e353d901d7f4c27ed21fac42305"
 dependencies = [
  "bitflags",
  "serde",
@@ -1559,13 +1568,12 @@ checksum = "a156c684c91ea7d62626509bce3cb4e1d9ed5c4d978f7b4352658f96a4c26b4a"
 
 [[package]]
 name = "url"
-version = "2.2.2"
+version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a507c383b2d33b5fc35d1861e77e6b383d158b2da5e14fe51b83dfedf6fd578c"
+checksum = "0d68c799ae75762b8c3fe375feb6600ef5602c883c5d21eb51c09f22b83c4643"
 dependencies = [
  "form_urlencoded",
- "idna",
- "matches",
+ "idna 0.3.0",
  "percent-encoding",
 ]
 
