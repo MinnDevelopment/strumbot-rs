@@ -3,6 +3,7 @@ use lru::LruCache;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{
+    num::NonZeroUsize,
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
@@ -12,7 +13,7 @@ use super::{
     oauth::{Identity, OauthClient, QueryParams},
     Clip, Game, Stream, TwitchData, Video, VideoType,
 };
-use crate::{error::RequestError};
+use crate::error::RequestError;
 
 type DateTime = eos::DateTime<eos::Utc>;
 
@@ -35,7 +36,7 @@ impl TwitchClient {
         Ok(Self {
             oauth,
             identity: Mutex::new(Arc::new(identity)),
-            games_cache: Mutex::new(LruCache::new(100)),
+            games_cache: unsafe { Mutex::new(LruCache::new(NonZeroUsize::new_unchecked(100))) },
         })
     }
 
