@@ -1,4 +1,4 @@
-use std::{num::NonZeroU64, sync::Arc};
+use std::sync::Arc;
 
 use eos::DateTime;
 use serde::{Deserialize, Serialize};
@@ -12,7 +12,7 @@ use crate::{
     discord::WebhookClient,
     error::{AsyncError as Error, RequestError},
     twitch::{Game, Stream, TwitchClient, VideoDuration},
-    util::{now_unix, plus},
+    util::Timestamp,
 };
 
 const fn split_duration(secs: u32) -> (u8, u8, u8) {
@@ -36,7 +36,7 @@ struct StreamSegment {
 
 impl StreamSegment {
     async fn from(client: &Arc<TwitchClient>, stream: &Stream, game: Arc<Game>) -> Self {
-        let position = eos::DateTime::utc_now().duration_since(&stream.started_at).as_secs() as u32;
+        let position = DateTime::utc_now().duration_since(&stream.started_at).as_secs() as u32;
         let video_id = match stream.get_video(client).await {
             Ok(v) => v.id,
             Err(e) => {
@@ -94,7 +94,7 @@ pub struct StreamWatcher {
     segments: Vec<StreamSegment>,
     start_timestamp: DateTime,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    offline_timestamp: Option<NonZeroU64>,
+    offline_timestamp: Option<Timestamp>,
     #[serde(default, skip)]
     config: Arc<Config>,
 }
@@ -259,11 +259,11 @@ impl StreamWatcher {
         match self.offline_timestamp {
             None => {
                 let offset = 60 * self.config.twitch.offline_grace_period as u64;
-                self.offline_timestamp = Some(plus(now_unix(), offset));
+                self.offline_timestamp = Some(Timestamp::now() + offset);
                 return Ok(false);
             }
             Some(instant) => {
-                if instant > now_unix() {
+                if instant > Timestamp::now() {
                     return Ok(false);
                 }
             }

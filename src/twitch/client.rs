@@ -12,7 +12,7 @@ use super::{
     oauth::{Identity, OauthClient, QueryParams},
     Clip, Game, Stream, TwitchData, Video, VideoType,
 };
-use crate::{error::RequestError, util::locked};
+use crate::{error::RequestError};
 
 type DateTime = eos::DateTime<eos::Utc>;
 
@@ -55,7 +55,11 @@ impl TwitchClient {
             return Ok(Game::empty());
         }
 
-        let cached_game = locked(&self.games_cache, |cache| cache.get(&id).cloned());
+        let cached_game = {
+            let mut cache = self.games_cache.lock().unwrap();
+            cache.get(&id).cloned()
+        };
+
         if let Some(game) = cached_game {
             return Ok(game);
         }
@@ -74,11 +78,8 @@ impl TwitchClient {
             .await?;
 
         let game = Arc::new(game);
-
-        Ok(locked(&self.games_cache, move |cache| {
-            cache.push(key, game.clone());
-            game
-        }))
+        self.games_cache.lock().unwrap().push(key, game.clone());
+        Ok(game)
     }
 
     pub async fn get_streams_by_login<S: ToString>(&self, user_login: &[S]) -> Result<Vec<Stream>, RequestError> {
