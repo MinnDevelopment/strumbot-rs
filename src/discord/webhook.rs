@@ -1,4 +1,3 @@
-use once_cell::sync::Lazy;
 use regex::Regex;
 use serde::Deserialize;
 use std::sync::Arc;
@@ -32,11 +31,11 @@ impl<'de> Deserialize<'de> for WebhookParams {
     where
         D: serde::Deserializer<'de>,
     {
-        static REGEX: Lazy<Regex> =
-            Lazy::new(|| Regex::new(r"^https?://(?:\w+\.)?discord.com/api/webhooks/(\d+)/([\w-]+)$").unwrap());
+        let regex =
+            Regex::new(r"^https?://(?:[a-zA-Z]+\.)?discord.com/api/webhooks/([0-9]+)/([a-zA-Z0-9-]+)$").unwrap();
 
         let s = String::deserialize(deserializer)?;
-        let m = REGEX
+        let m = regex
             .captures(&s)
             .and_then(|c| Option::zip(c.get(1).map(|m| m.as_str()), c.get(2).map(|m| m.as_str())))
             .and_then(|(id, token)| Option::zip(id.parse::<u64>().ok(), Some(token)));
@@ -47,7 +46,7 @@ impl<'de> Deserialize<'de> for WebhookParams {
             }),
             None => Err(serde::de::Error::custom(format!(
                 "Failed to parse string using regex.\nRegex: {}\nProvided: {}",
-                REGEX.as_str(),
+                regex.as_str(),
                 s
             ))),
         }

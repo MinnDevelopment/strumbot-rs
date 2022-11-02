@@ -196,7 +196,7 @@ impl<'de> Deserialize<'de> for VideoDuration {
     where
         D: serde::Deserializer<'de>,
     {
-        static REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"(\d+)([hms])").unwrap());
+        static REGEX: Lazy<Regex> = Lazy::new(|| Regex::new(r"([0-9]+)([hms])").unwrap());
 
         let s = String::deserialize(deserializer)?;
         let duration = REGEX
