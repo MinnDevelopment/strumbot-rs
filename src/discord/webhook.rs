@@ -32,7 +32,7 @@ impl<'de> Deserialize<'de> for WebhookParams {
         D: serde::Deserializer<'de>,
     {
         let regex =
-            Regex::new(r"^https?://(?:[a-zA-Z]+\.)?discord.com/api/webhooks/([0-9]+)/([a-zA-Z0-9-]+)$").unwrap();
+            Regex::new(r"^https?://(?:[a-zA-Z]+\.)?discord.com/api/webhooks/([0-9]+)/([a-zA-Z0-9-_]+)$").unwrap();
 
         let s = String::deserialize(deserializer)?;
         let m = regex
