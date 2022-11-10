@@ -37,7 +37,9 @@ async fn main() -> Async {
         }
     };
 
-    let mut config: Config = serde_json::from_str(&config)?;
+    let Ok(mut config) = serde_json::from_str::<Config>(&config) else {
+        panic!("Failed to parse config.json");
+    };
 
     let cache = Arc::new(Cache::new(".cache".into()));
     if config.cache.enabled {

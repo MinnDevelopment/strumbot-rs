@@ -189,15 +189,14 @@ impl Gateway {
         true
     }
 
-    async fn on_interaction(&self, interaction: &Interaction) {
-        let command = match interaction.data {
-            Some(InteractionData::ApplicationCommand(ref command)) => command,
-            _ => return,
+    async fn on_interaction(&self, interaction: &Interaction) -> Option<()> {
+        let InteractionData::ApplicationCommand(command) = interaction.data.as_ref()? else {
+            return None;
         };
 
         if command.name != "notify" {
             log::debug!("Ignoring unknown command: {}", command.name);
-            return;
+            return None;
         }
 
         let client = self.http.interaction(interaction.application_id);
@@ -206,28 +205,17 @@ impl Gateway {
             .exec();
         if let Err(e) = future.await {
             log::error!("Failed to respond to interaction: {}", e);
-            return;
+            return None;
         }
 
-        let option = match command.options.iter().find(|o| o.name == "role") {
-            Some(o) => o,
-            None => return,
+        let option = command.options.iter().find(|o| o.name == "role")?;
+
+        let CommandOptionValue::String(ref role_name) = option.value else {
+            return None;
         };
 
-        let role_name = match option.value {
-            CommandOptionValue::String(ref value) => value,
-            _ => return,
-        };
-
-        let role = match self.role_cache.get(role_name) {
-            Some(id) => *id,
-            None => return,
-        };
-
-        let guild = match command.guild_id {
-            Some(id) => id,
-            None => return,
-        };
+        let role = self.role_cache.get(role_name).copied()?;
+        let guild = command.guild_id?;
 
         let member = interaction.member.as_ref().expect("Command without member in a guild");
         let user_id = interaction.author_id().expect("Command without author id");
@@ -259,5 +247,7 @@ impl Gateway {
         if let Err(e) = res {
             log::error!("Failed to send followup: {}", e);
         }
+
+        Some(())
     }
 }
