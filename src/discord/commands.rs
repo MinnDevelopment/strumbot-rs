@@ -195,7 +195,7 @@ impl Gateway {
         };
 
         if command.name != "notify" {
-            log::debug!("Ignoring unknown command: {}", command.name);
+            log::warn!("Ignoring unknown command: {}", command.name);
             return None;
         }
 
@@ -215,7 +215,7 @@ impl Gateway {
         };
 
         let role = self.role_cache.get(role_name).copied()?;
-        let guild = command.guild_id?;
+        let guild = interaction.guild_id?;
 
         let member = interaction.member.as_ref().expect("Command without member in a guild");
         let user_id = interaction.author_id().expect("Command without author id");
