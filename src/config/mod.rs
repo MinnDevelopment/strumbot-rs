@@ -9,7 +9,6 @@ use twilight_model::{
     id::{marker::GuildMarker, Id},
 };
 
-use crate::util::ResponseResolve;
 use crate::{discord::WebhookParams, error::AsyncError as Error};
 
 pub mod errors;
@@ -50,10 +49,6 @@ pub struct RoleNameConfig {
 impl RoleNameConfig {
     pub fn values(&self) -> Vec<&str> {
         vec![&self.live, &self.vod, &self.update]
-            .into_iter()
-            .map(Box::as_ref)
-            .filter(|s| !s.is_empty())
-            .collect()
     }
 }
 
@@ -114,7 +109,7 @@ impl Config {
         let guild = if let Some(ref id) = self.discord.guild_id {
             Self::get_guild(client, id.parse()?).await?
         } else {
-            let guilds = client.current_user_guilds().limit(2)?.exec().await?.models().await?;
+            let guilds = client.current_user_guilds().limit(2)?.await?.models().await?;
             match guilds[..] {
                 [ref guild] => Self::get_guild(client, guild.id).await?,
                 [] => return Err(Box::new(InitError::NoGuilds)),
@@ -127,7 +122,7 @@ impl Config {
     }
 
     async fn get_guild(client: &Client, id: Id<GuildMarker>) -> Result<Guild, Error> {
-        match client.guild(id).exec().await {
+        match client.guild(id).await {
             Ok(guild) => Ok(guild.model().await?),
             Err(err) => Err(Box::new(err)),
         }
@@ -162,15 +157,15 @@ impl Config {
                 continue;
             }
 
-            let response = client
-                .create_role(guild_id)
-                .name(name.as_str())
-                .mentionable(false)
-                .permissions(Permissions::empty())
-                .exec()
-                .resolve();
+            let response = resolve! {
+                client
+                    .create_role(guild_id)
+                    .name(name.as_str())
+                    .mentionable(false)
+                    .permissions(Permissions::empty())
+            };
 
-            match response.await {
+            match response {
                 Err(err) => {
                     log::error!("Could not create roles due to error: {err:?}");
                     log::warn!("Make sure the bot has permissions to manage roles in your server. Missing: {name:?}");

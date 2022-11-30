@@ -1,25 +1,13 @@
-use crate::error::AsyncError as Error;
-use async_trait::async_trait;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use std::{num::NonZeroU64, ops::Add};
-use twilight_http::response::ResponseFuture;
 
-#[async_trait]
-pub trait ResponseResolve<T>
-where
-    T: DeserializeOwned + Unpin + Send,
-{
-    async fn resolve(self) -> Result<T, Error>;
-}
-
-#[async_trait]
-impl<T> ResponseResolve<T> for ResponseFuture<T>
-where
-    T: DeserializeOwned + Unpin + Send,
-{
-    async fn resolve(self) -> Result<T, Error> {
-        Ok(self.await?.model().await?)
-    }
+macro_rules! resolve {
+    ($x:expr) => {
+        match $x.await {
+            Ok(response) => response.model().await.map_err(crate::error::AsyncError::from),
+            Err(err) => Err(crate::error::AsyncError::from(err)),
+        }
+    };
 }
 
 #[derive(Serialize, Deserialize, PartialOrd, PartialEq, Ord, Eq, Clone, Copy)]

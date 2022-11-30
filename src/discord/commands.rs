@@ -1,15 +1,13 @@
 use hashbrown::HashMap;
 use std::{str::FromStr, sync::Arc};
+use twilight_util::builder::command::StringBuilder;
 
 use futures::StreamExt;
 use tracing as log;
 use twilight_gateway::{Event, Intents, Shard};
 use twilight_http::Client;
 use twilight_model::{
-    application::{
-        command::{ChoiceCommandOptionData, CommandOption, CommandOptionChoice},
-        interaction::{application_command::CommandOptionValue, Interaction, InteractionData},
-    },
+    application::interaction::{application_command::CommandOptionValue, Interaction, InteractionData},
     channel::message::MessageFlags,
     gateway::payload::incoming::Ready,
     http::interaction::{InteractionResponse, InteractionResponseData, InteractionResponseType},
@@ -83,19 +81,15 @@ impl Gateway {
     }
 
     #[inline]
-    fn to_choice(name: &str) -> CommandOptionChoice {
-        CommandOptionChoice::String {
-            name: name.to_string(),
-            value: name.to_string(),
-            name_localizations: None,
-        }
+    fn to_choice(name: &str) -> (String, String) {
+        (name.to_string(), name.to_string())
     }
 
     async fn init_roles(&mut self, config: &RoleNameConfig, guild_id: &str) -> Result<bool, AsyncError> {
         let guild_id: Id<GuildMarker> = Id::from_str(guild_id)?;
         let role_names = config.values();
 
-        let guild = self.http.guild(guild_id).exec().await?.model().await?;
+        let guild = resolve! { self.http.guild(guild_id) }?;
         for role in &guild.roles {
             if role_names.iter().any(|n| role.name.eq_ignore_ascii_case(n)) {
                 self.role_cache.insert(role.name.to_string(), role.id);
@@ -119,7 +113,7 @@ impl Gateway {
             }
         } else {
             // Try iterating all guilds the bot is connected to
-            let request = match self.http.current_user_guilds().exec().await {
+            let request = match self.http.current_user_guilds().await {
                 Ok(r) => r,
                 Err(e) => {
                     log::error!("Failed to get guilds: {}", e);
@@ -152,20 +146,12 @@ impl Gateway {
             return false;
         }
 
-        let choices = r
-            .values()
-            .into_iter()
-            .filter(|s| !s.is_empty())
-            .map(Self::to_choice)
-            .collect();
+        let choices = r.values().into_iter().filter(|s| !s.is_empty()).map(Self::to_choice);
 
-        let option = CommandOption::String(ChoiceCommandOptionData {
-            description: "The event role to subscribe or unsubscribe".to_string(),
-            name: "role".to_string(),
-            required: true,
-            choices,
-            ..Default::default()
-        });
+        let option = StringBuilder::new("role", "The event role to subscribe or unsubscribe")
+            .required(true)
+            .choices(choices)
+            .into();
 
         let res = self
             .http
@@ -176,7 +162,6 @@ impl Gateway {
             .dm_permission(false)
             .command_options(&[option])
             .unwrap()
-            .exec()
             .await;
 
         if let Err(ref e) = res {
@@ -200,10 +185,10 @@ impl Gateway {
         }
 
         let client = self.http.interaction(interaction.application_id);
-        let future = client
+        let r = client
             .create_response(interaction.id, &interaction.token, &Self::DEFER)
-            .exec();
-        if let Err(e) = future.await {
+            .await;
+        if let Err(e) = r {
             log::error!("Failed to respond to interaction: {}", e);
             return None;
         }
@@ -221,9 +206,9 @@ impl Gateway {
         let user_id = interaction.author_id().expect("Command without author id");
 
         let res = if member.roles.contains(&role) {
-            self.http.remove_guild_member_role(guild, user_id, role).exec().await
+            self.http.remove_guild_member_role(guild, user_id, role).await
         } else {
-            self.http.add_guild_member_role(guild, user_id, role).exec().await
+            self.http.add_guild_member_role(guild, user_id, role).await
         };
 
         if let Err(e) = res {
@@ -241,7 +226,6 @@ impl Gateway {
             .create_followup(&interaction.token)
             .content("Your roles have been updated!")
             .expect("Failed to create followup!")
-            .exec()
             .await;
 
         if let Err(e) = res {

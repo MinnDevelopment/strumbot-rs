@@ -13,13 +13,13 @@ use twilight_http::Client;
 use twitch::TwitchClient;
 use watcher::{StreamUpdate, StreamWatcher, WatcherState};
 
+#[macro_use]
+pub mod util;
 mod config;
 mod database;
 mod discord;
 mod error;
 mod twitch;
-#[macro_use]
-mod util;
 mod watcher;
 
 type Async = Result<(), error::AsyncError>;
