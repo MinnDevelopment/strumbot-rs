@@ -28,7 +28,11 @@ impl Database for FileDatabase {
         V: Serialize + Send + Sync,
     {
         let json = serde_json::to_string(&document)?;
-        Ok(fs::write(format!("{}/{}.json", self.root, key), json).await?)
+        // Write to a different file to avoid crash corruption
+        let name = format!("{}/{}-part.json", self.root, key);
+        fs::write(&name, json).await?;
+        // Move it to the right name when done (atomic)
+        Ok(fs::rename(&name, format!("{}/{}.json", self.root, key)).await?)
     }
 
     async fn read<'de, V>(&'de self, key: &str) -> Result<V, DatabaseError>
