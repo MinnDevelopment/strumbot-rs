@@ -84,15 +84,13 @@ impl TwitchClient {
     }
 
     pub async fn get_streams_by_login<S: ToString>(&self, user_login: &[S]) -> Result<Vec<Stream>, RequestError> {
-        let params = user_login
+        let params: Vec<_> = user_login
             .iter()
-            .fold(QueryParams::builder(), |query, login| {
-                query.param("user_login", login.to_string())
-            })
-            .build();
+            .map(|login| ("user_login".to_owned(), login.to_string()))
+            .collect();
 
         self.oauth
-            .get(&self.identity(), "streams", params, |b| {
+            .get(&self.identity(), "streams", params.into(), |b| {
                 let body: TwitchData<Stream> = serde_json::from_slice(&b)?;
                 Ok(body.data)
             })
@@ -138,13 +136,10 @@ impl TwitchClient {
 
     pub async fn get_videos(&self, mut ids: Vec<String>) -> Result<Vec<Video>, RequestError> {
         ids.dedup();
-        let params = ids
-            .iter()
-            .fold(QueryParams::builder(), |query, id| query.param("id", id.to_string()))
-            .build();
+        let params: Vec<_> = ids.into_iter().map(|id| ("id".to_owned(), id)).collect();
 
         self.oauth
-            .get(&self.identity(), "videos", params, |b| {
+            .get(&self.identity(), "videos", params.into(), |b| {
                 let body: TwitchData<Video> = serde_json::from_slice(&b)?;
                 Ok(body.data)
             })

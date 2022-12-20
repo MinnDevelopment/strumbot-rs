@@ -23,35 +23,23 @@ pub enum QueryParams {
     With(Vec<(String, String)>),
 }
 
-impl QueryParams {
-    pub fn builder() -> QueryBuilder {
-        QueryBuilder(vec![])
-    }
+macro_rules! build_query {
+    ($($key:expr => $value:expr),+) => {
+        QueryParams::With(vec![$(($key.to_string(), $value.to_string())),*])
+    };
+    () => {
+        QueryParams::None
+    };
 }
 
-pub struct QueryBuilder(Vec<(String, String)>);
-
-impl QueryBuilder {
-    pub fn param(mut self, key: &str, value: String) -> Self {
-        self.0.push((key.to_string(), value));
-        self
-    }
-
-    pub fn build(self) -> QueryParams {
-        if self.0.is_empty() {
-            QueryParams::None
+impl From<Vec<(String, String)>> for QueryParams {
+    fn from(params: Vec<(String, String)>) -> Self {
+        if params.is_empty() {
+            Self::None
         } else {
-            QueryParams::With(self.0)
+            Self::With(params)
         }
     }
-}
-
-macro_rules! build_query {
-    ($($key:expr => $value:expr),*) => {
-        QueryParams::builder()
-            $(.param($key, $value.to_string()))*
-            .build()
-    };
 }
 
 pub struct OauthClient {
