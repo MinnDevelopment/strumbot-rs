@@ -76,6 +76,8 @@ pub struct DiscordConfig {
     pub enabled_events: Vec<EventName>,
     #[serde(default = "default_true")]
     pub enable_command: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub avatar_url: Option<Box<str>>,
 }
 
 #[derive(Deserialize)]
@@ -205,6 +207,10 @@ mod tests {
         assert_eq!(
             discord.token.as_ref(),
             "MzgwNDY1NTU1MzU1OTkyMDcw.GDPnv6.FC4xX7mQn3rPV-MkiVboQPWHrv88u4y5aS9NGc"
+        );
+        assert_eq!(
+            discord.avatar_url.as_deref(),
+            Some("https://cdn.discordapp.com/avatars/86699011792191488/e43b5218e073a3ae0e9ff7504243bd32.png")
         );
 
         assert_eq!(discord.stream_notifications.id, Id::new(983342910521090131));

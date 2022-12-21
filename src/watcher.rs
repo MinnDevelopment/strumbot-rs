@@ -401,6 +401,10 @@ impl StreamWatcher {
             request = request.attachments(&files).expect(INVALID_NAME);
         }
 
+        if let Some(url) = self.config.discord.avatar_url.as_deref() {
+            request = request.avatar_url(url);
+        }
+
         let embeds = [embed.build()];
         match request.embeds(&embeds) {
             Ok(request) => {

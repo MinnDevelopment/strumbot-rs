@@ -30,6 +30,7 @@ Anything that provides a default or described as optional, can be omitted.
 - `role_name` Optional configuration of `type`->`role` to change the default names of the update roles (empty value `""` disables the role, and removes the role mention from notifications)
 - `enabled_events` Array of events to publish to the `stream_notifications` webhook
 - `show_notify_hints` Whether to show a hint in the embed footer about the `/notify` command (default: true)
+- `avatar_url` Custom URL for the image to use as the webhook avatar (must be `png`/`jpeg`/`gif`/`webp`, or null)
 - `enable_command` Wether the `/notify` command should be enabled (default: true)
 
 The roles used for updates can be managed by the bot with the `/notify role: <type>` command.
@@ -79,6 +80,7 @@ You can omit the entire cache config, to use the recommended defaults.
     "token": "NjUzMjM1MjY5MzM1NjQ2MjA4.*******.*******",
     "stream_notifications": "https://discord.com/api/webhooks/*******/******",
     "show_notify_hints": true,
+    "avatar_url": "https://cdn.discordapp.com/avatars/86699011792191488/e43b5218e073a3ae0e9ff7504243bd32.png",
     "role_name": {
       "live": "live",
       "vod": "vod",
@@ -116,7 +118,7 @@ version: "2.2"
 
 services:
     strumbot:
-        image: minnced/strumbot-rs:1.0.14
+        image: minnced/strumbot-rs:1.1.0
         volumes:
             - ./cache:/app/.cache # The hosted cache directory as a local volume
             - ./config.json:/app/config.json # Your config file is also available inside the container as a volume
