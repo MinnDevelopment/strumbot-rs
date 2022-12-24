@@ -346,7 +346,7 @@ impl StreamWatcher {
         index.push(current);
 
         for part in index {
-            embed = embed.field(EmbedFieldBuilder::new("Timestamps", &part).inline());
+            embed = embed.field(EmbedFieldBuilder::new("Timestamps", part).inline());
         }
 
         self.segments.clear();
@@ -376,7 +376,7 @@ impl StreamWatcher {
                 })
                 .collect();
             if !clips.is_empty() {
-                embed = embed.field(EmbedFieldBuilder::new("Top Clips", &s));
+                embed = embed.field(EmbedFieldBuilder::new("Top Clips", s));
             }
         }
 
