@@ -1,6 +1,6 @@
 [package]
 name = "strumbot"
-version = "1.1.0"
+version = "1.1.1"
 edition = "2021"
 
 [dependencies]
@@ -59,7 +59,13 @@ default-features = false
 
 [dependencies.reqwest]
 version = "0.11"
-features = ["json", "rustls-tls", "rustls-tls-webpki-roots", "brotli", "trust-dns"]
+features = [
+    "json",
+    "rustls-tls",
+    "rustls-tls-webpki-roots",
+    "brotli",
+    "trust-dns",
+]
 default-features = false
 
 [dependencies.eos]
@@ -71,3 +77,5 @@ lto = true
 strip = true
 incremental = true
 overflow-checks = false
+opt-level = "z"
+panic = "abort"

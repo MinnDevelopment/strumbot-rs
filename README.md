@@ -118,7 +118,7 @@ version: "2.2"
 
 services:
     strumbot:
-        image: minnced/strumbot-rs:1.1.0
+        image: minnced/strumbot-rs:1.1.1
         volumes:
             - ./cache:/app/.cache # The hosted cache directory as a local volume
             - ./config.json:/app/config.json # Your config file is also available inside the container as a volume
