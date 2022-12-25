@@ -8,7 +8,7 @@
 
 [![tests](https://github.com/MinnDevelopment/strumbot-rs/actions/workflows/tests.yml/badge.svg)](https://github.com/MinnDevelopment/strumbot-rs/actions/workflows/tests.yml)
 [ ![docker-pulls](https://img.shields.io/docker/pulls/minnced/strumbot-rs?logo=docker&logoColor=white) ](https://hub.docker.com/r/minnced/strumbot-rs)
-[ ![](https://img.shields.io/docker/image-size/minnced/strumbot-rs?logo=docker&logoColor=white) ](https://hub.docker.com/r/minnced/strumbot-rs/tags?page=1&ordering=last_updated)
+[ ![](https://img.shields.io/docker/image-size/minnced/strumbot-rs?logo=docker&logoColor=white&sort=semver) ](https://hub.docker.com/r/minnced/strumbot-rs/tags?page=1&ordering=last_updated)
 [ ![Publish Artifacts](https://github.com/MinnDevelopment/strumbot-rs/actions/workflows/artifact.yml/badge.svg) ](https://github.com/MinnDevelopment/strumbot-rs/actions/workflows/artifact.yml)
 
 A Twitch Stream Notification Bot. This will send notifications to a webhook in your Discord server when the subscribed streamer goes live or changes their game.
