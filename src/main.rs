@@ -6,7 +6,10 @@ use config::Config;
 use database::{Database, DatabaseError, FileDatabase};
 use futures::FutureExt;
 use hashbrown::{HashMap, HashSet};
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 use tokio::{fs, sync::mpsc, time::sleep};
 use tracing as log;
 use twilight_http::Client;
@@ -121,7 +124,7 @@ async fn main() -> Async {
         }
 
         // 5. Refresh oauth token if needed and wait 10 seconds for next poll event
-        tokio::try_join!(client.refresh_auth(), sleep(Duration::from_secs(30)).map(Result::Ok))?;
+        tokio::try_join!(client.refresh_auth(), sleep(Duration::from_secs(10)).map(Result::Ok))?;
     }
 }
 
@@ -140,7 +143,13 @@ fn start_watcher(
     tokio::spawn(async move {
         let key = watcher.user_name.to_lowercase();
 
+        let mut next_update = Instant::now();
+
         while let Some(event) = receive.recv().await {
+            if next_update.elapsed().is_zero() {
+                continue;
+            }
+
             let result = watcher.update(&twitch, &webhook, event).await;
             match result {
                 Ok(WatcherState::Ended) => {
@@ -149,17 +158,22 @@ fn start_watcher(
                 Err(e) => {
                     log::error!("[{}] Error when updating stream watcher: {}", key, e);
                 }
-                Ok(WatcherState::Updated) if cache_enabled => {
-                    // Save the current watcher state to cache file
-                    match db.save(&key, &watcher).await {
-                        Err(DatabaseError::Io(e)) => {
-                            log::error!("[{}] Failed to save cache: {}", key, e);
+                Ok(WatcherState::Updated) => {
+                    if cache_enabled {
+                        // Save the current watcher state to cache file
+                        match db.save(&key, &watcher).await {
+                            Err(DatabaseError::Io(e)) => {
+                                log::error!("[{}] Failed to save cache: {}", key, e);
+                            }
+                            Err(DatabaseError::Serde(e)) => {
+                                log::error!("[{}] Could not serialize watcher: {}", key, e);
+                            }
+                            Ok(_) => {}
                         }
-                        Err(DatabaseError::Serde(e)) => {
-                            log::error!("[{}] Could not serialize watcher: {}", key, e);
-                        }
-                        Ok(_) => {}
                     }
+
+                    // Wait a minute before updating again to avoid weird twitch api issues
+                    next_update = Instant::now() + Duration::from_secs(60);
                 }
                 _ => {}
             }
