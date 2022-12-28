@@ -29,9 +29,15 @@ fn empty_str() -> Box<str> {
 
 #[derive(Deserialize, Serialize)]
 struct StreamSegment {
+    /// The game the stream was playing in this segment
     game: Arc<Game>,
+    /// Seconds since the stream started
     position: u32,
+    /// The id for the VOD link
     video_id: Box<str>,
+    /// The associated stream id
+    #[serde(skip_serializing_if = "str::is_empty", default)] // Backwards compatibility, TODO: Remove in 2.0
+    stream_id: Box<str>,
 }
 
 impl StreamSegment {
@@ -53,6 +59,7 @@ impl StreamSegment {
             game,
             position,
             video_id,
+            stream_id: stream.id.clone(),
         }
     }
 
@@ -206,6 +213,8 @@ impl StreamWatcher {
             self.add_segment(client, &stream).await?
         } else {
             // Nothing has changed, continue as usual.
+            // Attempt to insert vod link if necessary
+            self.relink(&stream, client).await;
             return Ok(false);
         };
 
@@ -494,5 +503,18 @@ impl StreamWatcher {
             )
             .inline(),
         )
+    }
+
+    /// Attempts to fetch VOD links for segments which don't have any yet.
+    async fn relink(&mut self, stream: &Stream, client: &TwitchClient) {
+        for segment in self.segments.iter_mut() {
+            // We will not attempt to link a vod if its too old,
+            // otherwise we end up with linearly increasing numbers of fetch requests to do.
+            if segment.video_id.is_empty() && segment.stream_id == stream.id && segment.position < 120 {
+                if let Ok(video) = client.get_video_by_stream(stream).await {
+                    segment.video_id = video.id;
+                }
+            }
+        }
     }
 }
