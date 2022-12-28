@@ -370,15 +370,23 @@ impl StreamWatcher {
                 .iter()
                 .enumerate()
                 .map(|(i, c)| {
-                    let title = if c.title.len() >= 25 {
-                        format!("{}...", &c.title[..25])
-                    } else {
-                        c.title.to_string()
-                    };
+                    let mut title = String::with_capacity(30);
+                    for (i, c) in c.title.chars().enumerate() {
+                        if i == 26 {
+                            title.push_str("...");
+                            break;
+                        }
+
+                        title.push(match c {
+                            '[' => '(',
+                            ']' => ')',
+                            c => c,
+                        });
+                    }
                     format!(
                         "`{}.` [**{} \u{1F855}**]({}) \u{2022} **{}**\u{00A0}views\n",
                         i + 1,
-                        title.replace(']', ")").replace('[', "("),
+                        title,
                         c.url,
                         c.view_count
                     )
