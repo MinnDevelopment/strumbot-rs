@@ -288,7 +288,7 @@ impl StreamWatcher {
 
         let start_segment = self.segments.first().expect("Offline without any segments");
 
-        let vid = start_segment.video_id.to_string();
+        let vid = start_segment.video_id.as_ref();
         let vod = if vid.is_empty() {
             None
         } else {

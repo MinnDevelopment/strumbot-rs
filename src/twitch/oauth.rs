@@ -1,5 +1,6 @@
 use hashbrown::HashMap;
 use std::{
+    borrow::Cow,
     str::FromStr,
     time::{Duration, Instant},
 };
@@ -18,22 +19,22 @@ fn get_url(endpoint: &str) -> String {
     format!("{}/{}", BASE_URL, endpoint)
 }
 
-pub enum QueryParams {
+pub enum QueryParams<'a> {
     None,
-    With(Vec<(String, String)>),
+    With(Box<[(&'a str, Cow<'a, str>)]>),
 }
 
 macro_rules! build_query {
     ($($key:expr => $value:expr),+) => {
-        QueryParams::With(vec![$(($key.to_owned(), $value.to_owned())),*])
+        QueryParams::With(vec![$(($key, Cow::from($value))),*].into_boxed_slice())
     };
     () => {
         QueryParams::None
     };
 }
 
-impl From<Vec<(String, String)>> for QueryParams {
-    fn from(params: Vec<(String, String)>) -> Self {
+impl<'a> From<Box<[(&'a str, Cow<'a, str>)]>> for QueryParams<'a> {
+    fn from(params: Box<[(&'a str, Cow<'a, str>)]>) -> Self {
         if params.is_empty() {
             Self::None
         } else {
@@ -109,7 +110,7 @@ impl OauthClient {
         id: &Identity,
         method: Method,
         url: U,
-        params: QueryParams,
+        params: QueryParams<'_>,
         handler: F,
     ) -> Result<T, RequestError>
     where
@@ -120,14 +121,15 @@ impl OauthClient {
         let mut full_url: String = url.into();
 
         if let QueryParams::With(vec) = params {
-            let query = vec
-                .iter()
-                .map(|(k, v)| format!("{k}={v}"))
-                .reduce(|a, b| format!("{a}&{b}"));
-            if let Some(query) = query {
-                full_url.push('?');
-                full_url.push_str(&query);
-            }
+            let mut query = vec.iter().fold(String::from("?"), |mut a, (name, value)| {
+                a.push_str(name);
+                a.push('=');
+                a.push_str(value.as_ref());
+                a.push('&');
+                a
+            });
+            query.truncate(query.len() - 1);
+            full_url.push_str(&query);
         }
 
         let mut backoff = Self::MIN_BACKOFF;
@@ -195,7 +197,7 @@ impl OauthClient {
         &self,
         id: &Identity,
         endpoint: &str,
-        params: QueryParams,
+        params: QueryParams<'_>,
         handler: F,
     ) -> Result<T, RequestError>
     where

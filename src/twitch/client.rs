@@ -3,6 +3,7 @@ use lru::LruCache;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::{
+    borrow::Cow,
     num::NonZeroUsize,
     sync::{Arc, Mutex},
     time::{Duration, Instant},
@@ -66,7 +67,7 @@ impl TwitchClient {
         }
 
         let key = id.to_string();
-        let query = build_query!("id" => id);
+        let query = build_query!("id" => &key);
         let game: Game = self
             .oauth
             .get(&self.identity(), "games", query, move |b| {
@@ -83,10 +84,10 @@ impl TwitchClient {
         Ok(game)
     }
 
-    pub async fn get_streams_by_login<S: ToString>(&self, user_login: &[S]) -> Result<Vec<Stream>, RequestError> {
-        let params: Vec<_> = user_login
+    pub async fn get_streams_by_login(&self, user_login: &[Box<str>]) -> Result<Vec<Stream>, RequestError> {
+        let params: Box<_> = user_login
             .iter()
-            .map(|login| ("user_login".to_owned(), login.to_string()))
+            .map(|login| ("user_login", login.as_ref().into()))
             .collect();
 
         self.oauth
@@ -97,14 +98,14 @@ impl TwitchClient {
             .await
     }
 
-    pub async fn get_video_by_id(&self, id: String) -> Result<Video, RequestError> {
+    pub async fn get_video_by_id(&self, id: &str) -> Result<Video, RequestError> {
         let query = build_query!("id" => id);
         self.oauth
             .get(&self.identity(), "videos", query, move |b| {
                 let mut body: TwitchData<Video> = serde_json::from_slice(&b)?;
                 match body.data.pop() {
                     Some(video) => Ok(video),
-                    None => Err(RequestError::NotFound("Video", id)),
+                    None => Err(RequestError::NotFound("Video", id.to_owned())),
                 }
             })
             .await
@@ -115,7 +116,7 @@ impl TwitchClient {
         let query = build_query!(
             "type" => "archive",
             "first" => "5",
-            "user_id" => user_id
+            "user_id" => stream.user_id.as_ref()
         );
 
         self.oauth
@@ -136,7 +137,7 @@ impl TwitchClient {
 
     pub async fn get_videos(&self, mut ids: Vec<String>) -> Result<Vec<Video>, RequestError> {
         ids.dedup();
-        let params: Vec<_> = ids.into_iter().map(|id| ("id".to_owned(), id)).collect();
+        let params: Box<_> = ids.into_iter().map(|id| ("id", id.into())).collect();
 
         self.oauth
             .get(&self.identity(), "videos", params.into(), |b| {
