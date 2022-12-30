@@ -52,7 +52,7 @@ impl RoleNameConfig {
     }
 }
 
-#[derive(Deserialize, PartialEq, Eq)]
+#[derive(Deserialize, PartialEq, Eq, Clone, Copy)]
 pub enum EventName {
     #[serde(rename = "live")]
     Live,
@@ -140,8 +140,8 @@ impl Config {
 
         for role in guild.roles {
             let name = &role.name.to_lowercase();
-            if let Some(event) = names.get(name) {
-                let owned = event.to_string();
+            if let Some(event) = names.get(name).copied() {
+                let owned = event.to_owned();
                 not_found.remove(name);
                 log::info!(
                     "Found notification role for {} event: {} (id={})",
@@ -174,7 +174,7 @@ impl Config {
                     break;
                 }
                 Ok(role) => {
-                    let event = names.get(name).unwrap().to_string();
+                    let event = names.get(name).copied().unwrap().to_owned();
                     log::info!("Created role with name {name:?} for {event:?} event");
                     self.role_map.insert(event, role.id.to_string());
                 }

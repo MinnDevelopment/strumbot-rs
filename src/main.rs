@@ -1,3 +1,14 @@
+#![warn(
+    clippy::string_slice,
+    clippy::str_to_string,
+    clippy::inefficient_to_string,
+    clippy::manual_string_new,
+    clippy::map_unwrap_or,
+    clippy::needless_pass_by_value,
+    clippy::unused_self,
+    clippy::explicit_iter_loop
+)]
+
 use crate::{
     discord::{Gateway, WebhookClient},
     twitch::oauth::{ClientParams, OauthClient},
@@ -216,7 +227,7 @@ async fn load_cache(
                 log::debug!("Cache file for {} not found", name);
             }
             Err(DatabaseError::Io(err)) => {
-                log::error!("Could not load cache for {name}: {}", err)
+                log::error!("Could not load cache for {name}: {}", err);
             }
             Err(DatabaseError::Serde(err)) => {
                 log::warn!("Failed to parse watcher state for watcher {name:?} from cache: {}", err);

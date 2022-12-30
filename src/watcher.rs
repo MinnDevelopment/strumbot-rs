@@ -176,7 +176,7 @@ impl StreamWatcher {
             return Ok(());
         }
 
-        let mut embed = self.create_embed(&stream, &game);
+        let mut embed = Self::create_embed(&stream, &game);
         embed = self.set_footer(embed, &self.config.discord.role_name.live);
 
         let content = if game.is_empty() {
@@ -244,7 +244,7 @@ impl StreamWatcher {
             return Ok(true);
         }
 
-        let mut embed = self.create_embed(&stream, &game);
+        let mut embed = Self::create_embed(&stream, &game);
         embed = self.set_footer(embed, &self.config.discord.role_name.update);
         embed = match self.segments.last() {
             Some(segs) if !segs.video_id.is_empty() => {
@@ -322,7 +322,7 @@ impl StreamWatcher {
 
             video.get_thumbnail(client).await
         } else {
-            embed = embed.author(EmbedAuthorBuilder::new("<Video Removed>".to_string()));
+            embed = embed.author(EmbedAuthorBuilder::new("<Video Removed>".to_owned()));
 
             None
         };
@@ -414,7 +414,7 @@ impl StreamWatcher {
         let files; // must have same lifetime as request
         if let Some(thumbnail) = thumbnail {
             embed = embed.image(ImageSource::attachment(FILENAME).expect(INVALID_NAME));
-            files = [Attachment::from_bytes(FILENAME.to_string(), thumbnail, 0)];
+            files = [Attachment::from_bytes(FILENAME.to_owned(), thumbnail, 0)];
             request = request.attachments(&files).expect(INVALID_NAME);
         }
 
@@ -469,8 +469,7 @@ impl StreamWatcher {
     fn get_mention(&self, event: &str) -> String {
         self.config
             .get_role(event)
-            .map(|id| format!("<@&{id}>"))
-            .unwrap_or_else(|| "".to_string())
+            .map_or_else(String::new, |id| format!("<@&{id}>"))
     }
 
     #[inline]
@@ -492,7 +491,7 @@ impl StreamWatcher {
     }
 
     #[inline]
-    fn create_embed(&self, stream: &Stream, game: &Game) -> EmbedBuilder {
+    fn create_embed(stream: &Stream, game: &Game) -> EmbedBuilder {
         let url = format!("https://twitch.tv/{}", stream.user_name);
         let mut embed = EmbedBuilder::new()
             .author(EmbedAuthorBuilder::new(stream.title.to_string()).build())
@@ -515,7 +514,7 @@ impl StreamWatcher {
 
     /// Attempts to fetch VOD links for segments which don't have any yet.
     async fn relink(&mut self, stream: &Stream, client: &TwitchClient) {
-        for segment in self.segments.iter_mut() {
+        for segment in &mut self.segments {
             // We will not attempt to link a vod if its too old,
             // otherwise we end up with linearly increasing numbers of fetch requests to do.
             if segment.video_id.is_empty() && segment.stream_id == stream.id && segment.position < 120 {

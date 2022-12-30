@@ -155,7 +155,7 @@ impl TwitchClient {
         let query = build_query!(
             "first" => "100", // twitch filters *after* limiting the number. we need to just get max and then filter
             "broadcaster_id" => user_id,
-            "started_at" => started_at.format(RFC3339)
+            "started_at" => started_at.format(RFC3339).to_string()
         );
 
         self.oauth
@@ -181,7 +181,7 @@ impl TwitchClient {
         if response.status().is_success() {
             Ok(response.bytes().await?.as_ref().to_vec())
         } else if response.status().as_u16() == 404 {
-            Err(RequestError::NotFound("Thumbnail", url.to_string()))
+            Err(RequestError::NotFound("Thumbnail", url.to_owned()))
         } else {
             Err(RequestError::Http(response.status()))
         }

@@ -25,7 +25,7 @@ pub enum QueryParams {
 
 macro_rules! build_query {
     ($($key:expr => $value:expr),+) => {
-        QueryParams::With(vec![$(($key.to_string(), $value.to_string())),*])
+        QueryParams::With(vec![$(($key.to_owned(), $value.to_owned())),*])
     };
     () => {
         QueryParams::None
@@ -64,7 +64,7 @@ impl OauthClient {
         body.insert("client_secret", self.params.client_secret.clone());
         body.insert("grant_type", "client_credentials".into());
 
-        let endpoint = "https://id.twitch.tv/oauth2/token".to_string();
+        let endpoint = "https://id.twitch.tv/oauth2/token".to_owned();
 
         let mut backoff = Self::MIN_BACKOFF;
         for _ in 0..10 {

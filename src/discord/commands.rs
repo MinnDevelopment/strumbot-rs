@@ -81,8 +81,8 @@ impl Gateway {
     }
 
     #[inline]
-    fn to_choice(name: &str) -> (String, String) {
-        (name.to_string(), name.to_string())
+    fn to_choice(name: &str) -> (&str, &str) {
+        (name, name)
     }
 
     async fn init_roles(&mut self, config: &RoleNameConfig, guild_id: &str) -> Result<bool, AsyncError> {

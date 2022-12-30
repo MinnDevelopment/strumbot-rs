@@ -9,8 +9,8 @@ use crate::error::RequestError;
 
 static EMPTY: Lazy<Arc<Game>> = Lazy::new(|| {
     Arc::new(Game {
-        id: "".to_string().into_boxed_str(),
-        name: "No Category".to_string().into_boxed_str(),
+        id: String::new().into_boxed_str(),
+        name: "No Category".to_owned().into_boxed_str(),
     })
 });
 
@@ -56,9 +56,9 @@ pub enum VideoType {
 impl From<VideoType> for String {
     fn from(video_type: VideoType) -> Self {
         match video_type {
-            VideoType::Archive => "archive".to_string(),
-            VideoType::Upload => "upload".to_string(),
-            VideoType::Highlight => "highlight".to_string(),
+            VideoType::Archive => "archive".to_owned(),
+            VideoType::Upload => "upload".to_owned(),
+            VideoType::Highlight => "highlight".to_owned(),
         }
     }
 }
