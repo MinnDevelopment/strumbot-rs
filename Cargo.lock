@@ -1182,7 +1182,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
- "trust-dns-resolver 0.21.2",
+ "trust-dns-resolver 0.22.0",
  "twilight-gateway",
  "twilight-http",
  "twilight-http-ratelimiting",

@@ -27,7 +27,7 @@ version = "0.3"
 default-features = false
 
 [dependencies.trust-dns-resolver]
-version = "0.21"
+version = "0.22"
 default-features = false
 features = ["tokio-runtime"]
 
