@@ -203,20 +203,21 @@ impl Gateway {
         let guild = interaction.guild_id?;
 
         let member = interaction.member.as_ref().expect("Command without member in a guild");
-        let user_id = interaction.author_id().expect("Command without author id");
+        let author = interaction.author().expect("Command without author");
 
         let res = if member.roles.contains(&role) {
-            self.http.remove_guild_member_role(guild, user_id, role).await
+            self.http.remove_guild_member_role(guild, author.id, role).await
         } else {
-            self.http.add_guild_member_role(guild, user_id, role).await
+            self.http.add_guild_member_role(guild, author.id, role).await
         };
 
         if let Err(e) = res {
             log::error!("Failed to update member roles: {}", e);
         } else {
             log::info!(
-                "Successfully updated member roles! Member: {} Role: {} ({})",
-                user_id,
+                "Successfully updated member roles! Member: {}#{} Role: {} ({})",
+                author.name,
+                author.discriminator(),
                 role_name,
                 role
             );
