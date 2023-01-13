@@ -214,8 +214,7 @@ impl StreamWatcher {
         } else {
             // Nothing has changed, continue as usual.
             // Attempt to insert vod link if necessary
-            self.relink(&stream, client).await;
-            return Ok(false);
+            return Ok(self.relink(&stream, client).await);
         };
 
         // Clone to avoid propagating mutable borrow
@@ -513,15 +512,19 @@ impl StreamWatcher {
     }
 
     /// Attempts to fetch VOD links for segments which don't have any yet.
-    async fn relink(&mut self, stream: &Stream, client: &TwitchClient) {
+    async fn relink(&mut self, stream: &Stream, client: &TwitchClient) -> bool {
+        let mut changed = false;
         for segment in &mut self.segments {
             // We will not attempt to link a vod if its too old,
             // otherwise we end up with linearly increasing numbers of fetch requests to do.
             if segment.video_id.is_empty() && segment.stream_id == stream.id && segment.position < 120 {
                 if let Ok(video) = client.get_video_by_stream(stream).await {
                     segment.video_id = video.id;
+                    changed = true;
                 }
             }
         }
+
+        changed
     }
 }
