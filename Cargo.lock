@@ -403,9 +403,9 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
-version = "0.13.1"
+version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33ff8ae62cd3a9102e5637afc8452c55acf3844001bd5374e0b0bd7b6616c038"
+checksum = "43a3c133739dddd0d2990f9a4bdf8eb4b21ef50e4851ca85ab661199821d510e"
 dependencies = [
  "ahash 0.8.2",
  "serde",
@@ -1172,7 +1172,7 @@ dependencies = [
  "bytes",
  "eos",
  "futures",
- "hashbrown 0.13.1",
+ "hashbrown 0.13.2",
  "lru",
  "once_cell",
  "regex",
