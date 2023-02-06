@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 twilight-http-ratelimiting = "0.14"
-twilight-model = "0.14"
+twilight-model = "0.15"
 serde_json = "1.0"
 url = "2.2"
 bytes = "1"
