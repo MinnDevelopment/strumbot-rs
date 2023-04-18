@@ -12,7 +12,7 @@ use crate::{
     discord::WebhookClient,
     error::{AsyncError as Error, RequestError},
     twitch::{Game, Stream, TwitchClient, VideoDuration},
-    util::Timestamp,
+    util::{Timestamp, strip_emoji},
 };
 
 const fn split_duration(secs: u32) -> (u8, u8, u8) {
@@ -385,7 +385,7 @@ impl StreamWatcher {
                     format!(
                         "`{}.` [**{} \u{1F855}**]({}) \u{2022} **{}**\u{00A0}views\n",
                         i + 1,
-                        title,
+                        strip_emoji(&title),
                         c.url,
                         c.view_count
                     )
