@@ -1,0 +1,48 @@
+[package]
+name = "discord-api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+twilight-http-ratelimiting = { workspace = true }
+twilight-model = { workspace = true }
+tracing = { workspace = true }
+serde_json = { workspace = true }
+
+[dependencies.commons]
+version = "*"
+path = "../commons"
+
+[dependencies.trust-dns-resolver]
+workspace = true
+default-features = false
+features = ["tokio-runtime"]
+
+[dependencies.twilight-util]
+workspace = true
+default-features = false
+features = ["builder"]
+
+[dependencies.twilight-http]
+workspace = true
+features = ["decompression", "rustls-webpki-roots", "trust-dns"]
+
+[dependencies.twilight-gateway]
+workspace = true
+default-features = false
+features = ["rustls-webpki-roots", "zlib-stock"]
+
+[dependencies.hashbrown]
+workspace = true
+features = ["serde"]
+
+[dependencies.regex]
+workspace = true
+
+[dependencies.futures]
+workspace = true
+default-features = false
+
+[dependencies.serde]
+workspace = true
+features = ["rc", "derive"]

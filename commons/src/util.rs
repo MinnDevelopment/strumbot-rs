@@ -3,11 +3,12 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::{num::NonZeroU64, ops::Add};
 
+#[macro_export]
 macro_rules! resolve {
     ($x:expr) => {
         match $x.await {
-            Ok(response) => response.model().await.map_err(crate::error::AsyncError::from),
-            Err(err) => Err(crate::error::AsyncError::from(err)),
+            Ok(response) => response.model().await.map_err(commons::errors::AsyncError::from),
+            Err(err) => Err(commons::errors::AsyncError::from(err)),
         }
     };
 }
@@ -36,11 +37,11 @@ impl Add<u64> for Timestamp {
     }
 }
 
-const EMOJI_ARRAY: [u32; 9280] = include!("../emojis.txt");
+const EMOJI_ARRAY: [u32; 9280] = include!("../../emojis.txt");
 
 static EMOJI_SET: Lazy<FxHashSet<u32>> = Lazy::new(|| EMOJI_ARRAY.iter().copied().collect());
 
-pub fn strip_emoji<'a>(text: &'a str) -> String {
+pub fn strip_emoji(text: &str) -> String {
     text.chars()
         .filter(|&c| !EMOJI_SET.contains(&(c as u32)))
         .fold(String::with_capacity(text.len()), |mut acc, c| {

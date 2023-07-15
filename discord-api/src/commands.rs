@@ -17,14 +17,14 @@ use twilight_model::{
     },
 };
 
-use crate::{
-    config::{Config, RoleNameConfig},
-    error::AsyncError,
-};
+use commons::errors::AsyncError;
+use commons::resolve;
+
+use crate::config::{DiscordConfig, RoleNameConfig};
 
 pub struct Gateway {
     pub http: Arc<Client>,
-    pub config: Arc<Config>,
+    pub config: Arc<DiscordConfig>,
     role_cache: HashMap<String, Id<RoleMarker>>,
 }
 
@@ -47,7 +47,7 @@ impl Gateway {
         }),
     };
 
-    pub fn new(http: Arc<Client>, config: Arc<Config>) -> Self {
+    pub fn new(http: Arc<Client>, config: Arc<DiscordConfig>) -> Self {
         Self {
             http,
             config,
@@ -100,10 +100,10 @@ impl Gateway {
     }
 
     async fn on_ready(&mut self, event: &Ready) -> bool {
-        let r = self.config.discord.role_name.clone();
+        let r = self.config.role_name.clone();
 
         // Find role ids
-        let has_roles = if let Some(ref id) = self.config.discord.guild_id.clone() {
+        let has_roles = if let Some(ref id) = self.config.guild_id.clone() {
             match self.init_roles(&r, id).await {
                 Err(e) => {
                     log::error!("Failed to initialize roles: {}", e);

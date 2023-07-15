@@ -5,6 +5,8 @@ pub mod model;
 #[macro_use]
 pub mod oauth;
 pub mod client;
+pub mod error;
+pub mod config;
 
 // Serde deserialization into Instant
 pub(crate) mod expires_at {
