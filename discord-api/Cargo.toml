@@ -1,7 +1,7 @@
 [package]
 name = "discord-api"
 version = "1.2.5"
-edition = "2021"
+edition.workspace = true
 
 [dependencies]
 twilight-http-ratelimiting = { workspace = true }
