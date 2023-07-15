@@ -718,26 +718,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "main"
-version = "1.2.5"
-dependencies = [
- "commons",
- "database-api",
- "discord-api",
- "eos",
- "futures",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "twilight-http",
- "twilight-model",
- "twilight-util",
- "twitch-api",
-]
-
-[[package]]
 name = "match_cfg"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1263,6 +1243,26 @@ name = "spin"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
+
+[[package]]
+name = "strumbot"
+version = "1.2.5"
+dependencies = [
+ "commons",
+ "database-api",
+ "discord-api",
+ "eos",
+ "futures",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "twilight-http",
+ "twilight-model",
+ "twilight-util",
+ "twitch-api",
+]
 
 [[package]]
 name = "syn"
