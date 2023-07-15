@@ -1,9 +1,18 @@
-[package]
+[workspace]
+members = [
+    "commons",
+    "database-api",
+    "discord-api",
+    "twitch-api",
+    "main"
+]
+
+[workspace.package]
 name = "strumbot"
 version = "1.2.5"
 edition = "2021"
 
-[dependencies]
+[workspace.dependencies]
 twilight-http-ratelimiting = "0.14"
 twilight-model = "0.14"
 serde_json = "1.0"
@@ -16,50 +25,50 @@ async-trait = "0.1"
 emojis = "0.6"
 fxhash = "0.2"
 
-[dependencies.once_cell]
+[workspace.dependencies.once_cell]
 version = "1"
 default-features = false
 
-[dependencies.hashbrown]
+[workspace.dependencies.hashbrown]
 version = "0.13"
 features = ["serde"]
 
-[dependencies.futures]
+[workspace.dependencies.futures]
 version = "0.3"
 default-features = false
 
-[dependencies.trust-dns-resolver]
+[workspace.dependencies.trust-dns-resolver]
 version = "0.21"
 default-features = false
 features = ["tokio-runtime"]
 
-[dependencies.twilight-util]
+[workspace.dependencies.twilight-util]
 version = "0.14"
 default-features = false
 features = ["builder"]
 
-[dependencies.twilight-http]
+[workspace.dependencies.twilight-http]
 version = "0.14"
 features = ["decompression", "rustls-webpki-roots", "trust-dns"]
 
-[dependencies.twilight-gateway]
+[workspace.dependencies.twilight-gateway]
 version = "0.14"
 default-features = false
 features = ["rustls-webpki-roots", "zlib-stock"]
 
-[dependencies.serde]
+[workspace.dependencies.serde]
 version = "1.0"
 features = ["rc"]
 
-[dependencies.regex]
+[workspace.dependencies.regex]
 version = "1.6"
 
-[dependencies.tokio]
+[workspace.dependencies.tokio]
 version = "1.21"
 features = ["macros", "rt-multi-thread", "fs", "sync"]
 default-features = false
 
-[dependencies.reqwest]
+[workspace.dependencies.reqwest]
 version = "0.11"
 features = [
     "json",
@@ -70,7 +79,7 @@ features = [
 ]
 default-features = false
 
-[dependencies.eos]
+[workspace.dependencies.eos]
 features = ["alloc", "parsing", "serde", "macros"]
 git = "https://github.com/Rapptz/eos"
 

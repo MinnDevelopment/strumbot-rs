@@ -1,19 +1,18 @@
 use std::sync::Arc;
 
+use commons::errors::AsyncError as Error;
+use commons::util::{strip_emoji, Timestamp};
+use discord_api::{config::EventName, WebhookClient};
 use eos::DateTime;
 use serde::{Deserialize, Serialize};
 use tracing as log;
 use twilight_http::request::channel::webhook::ExecuteWebhook;
 use twilight_model::{channel::message::embed::EmbedFooter, http::attachment::Attachment};
 use twilight_util::builder::embed::{EmbedAuthorBuilder, EmbedBuilder, EmbedFieldBuilder, ImageSource};
+use twitch_api::VideoDuration;
+use twitch_api::{error::RequestError, Game, Stream, TwitchClient};
 
-use crate::{
-    config::{Config, EventName},
-    discord::WebhookClient,
-    error::{AsyncError as Error, RequestError},
-    twitch::{Game, Stream, TwitchClient, VideoDuration},
-    util::{Timestamp, strip_emoji},
-};
+use crate::config::Config;
 
 const fn split_duration(secs: u32) -> (u8, u8, u8) {
     let hour = (secs / 3600) % 60;

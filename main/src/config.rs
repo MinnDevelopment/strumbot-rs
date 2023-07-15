@@ -1,83 +1,19 @@
-use hashbrown::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 
-use errors::InitError;
+use discord_api::config::DiscordConfig;
 use serde::Deserialize;
 use tracing as log;
 use twilight_http::Client;
-use twilight_model::{
-    guild::{Guild, Permissions},
-    id::{marker::GuildMarker, Id},
-};
+use twilight_model::guild::{Guild, Permissions};
+use twilight_model::id::{marker::GuildMarker, Id};
+use twitch_api::config::TwitchConfig;
 
-use crate::{discord::WebhookParams, error::AsyncError as Error};
+use commons::{errors::AsyncError as Error, resolve};
 
-pub mod errors;
-
-const fn default_top_clips() -> u8 {
-    0
-}
-
-const fn default_grace_period() -> u8 {
-    2
-}
+use crate::errors::InitError;
 
 const fn default_true() -> bool {
     true
-}
-
-#[derive(Deserialize, Default)]
-pub struct TwitchConfig {
-    pub client_id: Box<str>,
-    pub client_secret: Box<str>,
-    pub user_login: Vec<Box<str>>,
-    #[serde(default = "default_top_clips")]
-    pub top_clips: u8,
-    #[serde(default = "default_grace_period")]
-    pub offline_grace_period: u8,
-}
-
-#[derive(Deserialize, Default, Clone)]
-pub struct RoleNameConfig {
-    #[serde(default)]
-    pub live: Box<str>,
-    #[serde(default)]
-    pub vod: Box<str>,
-    #[serde(default)]
-    pub update: Box<str>,
-}
-
-impl RoleNameConfig {
-    pub fn values(&self) -> Vec<&str> {
-        vec![&self.live, &self.vod, &self.update]
-    }
-}
-
-#[derive(Deserialize, PartialEq, Eq, Clone, Copy)]
-pub enum EventName {
-    #[serde(rename = "live")]
-    Live,
-    #[serde(rename = "vod")]
-    Vod,
-    #[serde(rename = "update")]
-    Update,
-}
-
-#[derive(Deserialize, Default)]
-pub struct DiscordConfig {
-    pub token: Box<str>,
-    #[serde(rename = "server_id", skip_serializing_if = "Option::is_none")]
-    pub guild_id: Option<Box<str>>,
-    pub stream_notifications: WebhookParams,
-    pub logging: Option<WebhookParams>,
-    #[serde(default = "default_true")]
-    pub show_notify_hints: bool,
-    #[serde(default)]
-    pub role_name: RoleNameConfig,
-    pub enabled_events: Vec<EventName>,
-    #[serde(default = "default_true")]
-    pub enable_command: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub avatar_url: Option<Box<str>>,
 }
 
 #[derive(Deserialize)]
@@ -189,44 +125,13 @@ mod tests {
 
     #[test]
     fn test_config_parse() {
-        let file = std::fs::read("example-config.json").unwrap();
+        let file = std::fs::read("../example-config.json").unwrap();
         let Config {
-            twitch,
-            discord,
+            twitch: _,
+            discord: _,
             cache,
             role_map: _,
         } = serde_json::from_slice(&file).unwrap();
-
-        assert_eq!(twitch.client_id.as_ref(), "tRSXhpTsLQtWiI7Az7HNjmFna10XTdmi");
-        assert_eq!(twitch.client_secret.as_ref(), "BJW8uMosDo02LcdU25u8dC95YTVBVZmy");
-        assert_eq!(twitch.user_login, vec!["Elajjaz".into(), "distortion2".into()]);
-        assert_eq!(twitch.top_clips, 5);
-        assert_eq!(twitch.offline_grace_period, 2);
-
-        assert_eq!(discord.guild_id, Some("81384788765712384".into()));
-        assert_eq!(
-            discord.token.as_ref(),
-            "MzgwNDY1NTU1MzU1OTkyMDcw.GDPnv6.FC4xX7mQn3rPV-MkiVboQPWHrv88u4y5aS9NGc"
-        );
-        assert_eq!(
-            discord.avatar_url.as_deref(),
-            Some("https://cdn.discordapp.com/avatars/86699011792191488/e43b5218e073a3ae0e9ff7504243bd32.png")
-        );
-
-        assert_eq!(discord.stream_notifications.id, Id::new(983342910521090131));
-        assert_eq!(
-            discord.stream_notifications.token.as_ref(),
-            "6iwWTd-VHL7yzlJ_W1SWagLBVtTbJK8NhlMFpnjkibU5UYqjC0KgfDrTPdxUC7fdSJlD"
-        );
-
-        assert!(discord.enabled_events.contains(&EventName::Live));
-        assert!(discord.enabled_events.contains(&EventName::Update));
-        assert!(discord.enabled_events.contains(&EventName::Vod));
-
-        let role_names = discord.role_name;
-        assert_eq!(role_names.live.as_ref(), "live");
-        assert_eq!(role_names.update.as_ref(), "new game");
-        assert_eq!(role_names.vod.as_ref(), "");
 
         assert!(!cache.enabled);
     }

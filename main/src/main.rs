@@ -9,34 +9,26 @@
     clippy::explicit_iter_loop
 )]
 
-use crate::{
-    discord::{Gateway, WebhookClient},
-    twitch::oauth::{ClientParams, OauthClient},
-};
+use commons::errors::AsyncError;
 use config::Config;
-use database::{Database, DatabaseError, FileDatabase};
+use database_api::{FileDatabase, DatabaseError, Database};
+use discord_api::{Gateway, WebhookClient};
 use futures::FutureExt;
-use hashbrown::{HashMap, HashSet};
+use twitch_api::{oauth::{OauthClient, ClientParams}, TwitchClient};
 use std::{
     sync::Arc,
-    time::{Duration, Instant},
+    time::{Duration, Instant}, collections::{HashMap, HashSet},
 };
 use tokio::{fs, sync::mpsc, time::sleep};
 use tracing as log;
 use twilight_http::Client;
-use twitch::TwitchClient;
 use watcher::{StreamUpdate, StreamWatcher, WatcherState};
 
-#[macro_use]
-pub mod util;
 mod config;
-mod database;
-mod discord;
-mod error;
-mod twitch;
+mod errors;
 mod watcher;
 
-type Async = Result<(), error::AsyncError>;
+type Async = Result<(), AsyncError>;
 type Cache = FileDatabase;
 
 #[tokio::main]
@@ -73,7 +65,7 @@ async fn main() -> Async {
     let config = Arc::new(config);
 
     if config.discord.enable_command {
-        let gateway = Gateway::new(Arc::clone(&discord_client), Arc::clone(&config));
+        let gateway = Gateway::new(Arc::clone(&discord_client), Arc::new(config.discord.clone()));
         tokio::spawn(gateway.run());
     }
 

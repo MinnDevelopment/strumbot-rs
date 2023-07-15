@@ -1,0 +1,17 @@
+[package]
+name = "commons"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+emojis = "0.6"
+fxhash = "0.2"
+
+
+[dependencies.once_cell]
+version = "1"
+default-features = false
+
+[dependencies.serde]
+version = "1.0"
+features = ["rc", "derive"]

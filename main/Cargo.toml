@@ -1,0 +1,43 @@
+[package]
+name = "main"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde_json = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+tokio = { workspace = true }
+twilight-model = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[dependencies.commons]
+path = "../commons"
+
+[dependencies.twitch-api]
+path = "../twitch-api"
+
+[dependencies.discord-api]
+path = "../discord-api"
+
+[dependencies.database-api]
+path = "../database-api"
+
+[dependencies.twilight-http]
+workspace = true
+features = ["decompression", "rustls-webpki-roots", "trust-dns"]
+
+[dependencies.futures]
+workspace = true
+default-features = false
+
+[dependencies.eos]
+features = ["alloc", "parsing", "serde", "macros"]
+workspace = true
+
+[dependencies.twilight-util]
+workspace = true
+default-features = false
+features = ["builder"]

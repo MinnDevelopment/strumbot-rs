@@ -1,0 +1,45 @@
+[package]
+name = "twitch-api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+serde_json = { workspace = true }
+lru = { workspace = true }
+tracing = { workspace = true }
+bytes = { workspace = true }
+
+[dependencies.once_cell]
+default-features = false
+workspace = true
+
+[dependencies.serde]
+workspace = true
+features = ["rc", "derive"]
+
+[dependencies.hashbrown]
+workspace = true
+features = ["serde"]
+
+[dependencies.regex]
+workspace = true
+
+[dependencies.tokio]
+workspace = true
+features = ["macros", "rt-multi-thread", "fs", "sync"]
+default-features = false
+
+[dependencies.reqwest]
+workspace = true
+features = [
+    "json",
+    "rustls-tls",
+    "rustls-tls-webpki-roots",
+    "brotli",
+    "trust-dns",
+]
+default-features = false
+
+[dependencies.eos]
+features = ["alloc", "parsing", "serde", "macros"]
+workspace = true
