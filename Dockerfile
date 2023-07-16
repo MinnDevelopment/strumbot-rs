@@ -18,7 +18,7 @@ COPY ./strumbot/Cargo.toml ./strumbot/Cargo.toml
 COPY ./twitch-api/Cargo.toml ./twitch-api/Cargo.toml
 
 RUN cargo build --release
-RUN rm **/*.rs
+RUN find . -wholename "*/src/*.rs" | xargs rm -f
 RUN rm ./target/release/deps/strumbot*
 
 
