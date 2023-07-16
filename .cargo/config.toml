@@ -1,0 +1,12 @@
+[build]
+rustflags = [
+    "-Dclippy::print-stdout",
+    "-Dclippy::string-slice",
+    "-Dclippy::str-to-string",
+    "-Dclippy::inefficient-to-string",
+    "-Dclippy::manual-string-new",
+    "-Dclippy::map-unwrap-or",
+    "-Dclippy::needless-pass-by-value",
+    "-Dclippy::unused-self",
+    "-Dclippy::explicit-iter-loop"
+]

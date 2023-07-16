@@ -1,27 +1,20 @@
-#![warn(
-    clippy::string_slice,
-    clippy::str_to_string,
-    clippy::inefficient_to_string,
-    clippy::manual_string_new,
-    clippy::map_unwrap_or,
-    clippy::needless_pass_by_value,
-    clippy::unused_self,
-    clippy::explicit_iter_loop
-)]
-
 use commons::errors::AsyncError;
 use config::Config;
-use database_api::{FileDatabase, DatabaseError, Database};
+use database_api::{Database, DatabaseError, FileDatabase};
 use discord_api::{Gateway, WebhookClient};
 use futures::FutureExt;
-use twitch_api::{oauth::{OauthClient, ClientParams}, TwitchClient};
 use std::{
+    collections::{HashMap, HashSet},
     sync::Arc,
-    time::{Duration, Instant}, collections::{HashMap, HashSet},
+    time::{Duration, Instant},
 };
 use tokio::{fs, sync::mpsc, time::sleep};
 use tracing as log;
 use twilight_http::Client;
+use twitch_api::{
+    oauth::{ClientParams, OauthClient},
+    TwitchClient,
+};
 use watcher::{StreamUpdate, StreamWatcher, WatcherState};
 
 mod config;
