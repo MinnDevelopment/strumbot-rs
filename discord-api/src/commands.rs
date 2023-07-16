@@ -2,9 +2,8 @@ use hashbrown::HashMap;
 use std::{str::FromStr, sync::Arc};
 use twilight_util::builder::command::StringBuilder;
 
-use futures::StreamExt;
 use tracing as log;
-use twilight_gateway::{Event, Intents, Shard};
+use twilight_gateway::{Config as ShardConfig, Event, EventTypeFlags, Intents, Shard, ShardId};
 use twilight_http::Client;
 use twilight_model::{
     application::interaction::{application_command::CommandOptionValue, Interaction, InteractionData},
@@ -56,26 +55,36 @@ impl Gateway {
     }
 
     pub async fn run(mut self) -> Result<(), AsyncError> {
-        let (shard, mut events) = Shard::new(self.http.token().unwrap().into(), Self::INTENTS);
+        let mut shard = Shard::with_config(
+            ShardId::ONE,
+            ShardConfig::builder(self.http.token().unwrap().into(), Self::INTENTS)
+                .event_types(EventTypeFlags::INTERACTION_CREATE | EventTypeFlags::READY)
+                .build(),
+        );
 
-        shard.start().await?;
         log::info!("Connection established");
 
-        while let Some(event) = events.next().await {
-            match event {
-                Event::InteractionCreate(interaction) => {
+        loop {
+            match shard.next_event().await {
+                Ok(Event::InteractionCreate(interaction)) => {
                     self.on_interaction(&interaction).await;
                 }
-                Event::Ready(e) => {
+                Ok(Event::Ready(e)) => {
                     if !self.on_ready(&e).await {
                         break;
                     }
                 }
+                Err(e) => {
+                    log::error!(?e, "error in gateway event stream");
+
+                    if e.is_fatal() {
+                        break;
+                    }
+                }
                 _ => {}
-            }
+            }    
         }
 
-        shard.shutdown();
         log::info!("Connection terminated");
         Ok(())
     }
