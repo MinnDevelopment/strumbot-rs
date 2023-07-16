@@ -34,11 +34,11 @@ COPY --from=deps /strumbot/target/ ./target/
 COPY ./Cargo.lock ./Cargo.lock
 COPY ./Cargo.toml ./Cargo.toml
 
-COPY ./commons ./commons
-COPY ./database-api ./database-api
-COPY ./discord-api ./discord-api
-COPY ./strumbot ./strumbot
-COPY ./twitch-api ./twitch-api
+COPY ./commons/ ./commons/
+COPY ./database-api/ ./database-api/
+COPY ./discord-api/ ./discord-api/
+COPY ./strumbot/ ./strumbot/
+COPY ./twitch-api/ ./twitch-api/
 
 RUN cargo build --release
 
