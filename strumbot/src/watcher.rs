@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use commons::errors::AsyncError as Error;
-use commons::util::{strip_emoji, Timestamp};
+use commons::util::Timestamp;
 use discord_api::{config::EventName, WebhookClient};
 use eos::DateTime;
 use serde::{Deserialize, Serialize};
@@ -384,7 +384,7 @@ impl StreamWatcher {
                     format!(
                         "`{}.` [**{} \u{1F855}**]({}) \u{2022} **{}**\u{00A0}views\n",
                         i + 1,
-                        strip_emoji(&title),
+                        title,
                         c.url,
                         c.view_count
                     )

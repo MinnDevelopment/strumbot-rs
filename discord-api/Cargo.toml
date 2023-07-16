@@ -10,7 +10,6 @@ tracing = { workspace = true }
 serde_json = { workspace = true }
 
 [dependencies.commons]
-version = "*"
 path = "../commons"
 
 [dependencies.trust-dns-resolver]
