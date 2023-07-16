@@ -19,7 +19,7 @@ COPY ./twitch-api/Cargo.toml ./twitch-api/Cargo.toml
 
 RUN cargo build --release
 RUN find . -wholename "*/src/*.rs" | xargs rm -f
-RUN rm ./target/release/deps/strumbot*
+RUN rm -f ./target/release/deps/{libcommons*,libdatabase_api*,libdiscord_api*,strumbot*,libtwitch_api*}
 
 
 FROM debian:buster as libs
@@ -31,7 +31,6 @@ WORKDIR /strumbot
 
 COPY . .
 
-RUN mkdir -p ./target/release/deps
 COPY --from=deps /strumbot/target/ ./target/
 
 RUN cargo build --release
