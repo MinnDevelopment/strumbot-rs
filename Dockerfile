@@ -1,13 +1,25 @@
 FROM rust:latest as deps
 
-RUN USER=root cargo new --bin strumbot
 WORKDIR /strumbot
+
+RUN USER=root cargo new --bin strumbot
+RUN USER=root cargo new --lib commons
+RUN USER=root cargo new --lib database-api
+RUN USER=root cargo new --lib discord-api
+RUN USER=root cargo new --lib strumbot
+RUN USER=root cargo new --lib twitch-api
 
 COPY ./Cargo.lock ./Cargo.lock
 COPY ./Cargo.toml ./Cargo.toml
 
+COPY ./commons/Cargo.toml ./commons/Cargo.toml
+COPY ./database-api/Cargo.toml ./database-api/Cargo.toml
+COPY ./discord-api/Cargo.toml ./discord-api/Cargo.toml
+COPY ./strumbot/Cargo.toml ./strumbot/Cargo.toml
+COPY ./twitch-api/Cargo.toml ./twitch-api/Cargo.toml
+
 RUN cargo build --release
-RUN rm src/*.rs
+RUN rm **/*.rs
 RUN rm ./target/release/deps/strumbot*
 
 
@@ -22,7 +34,12 @@ RUN mkdir -p ./target/release/deps
 COPY --from=deps /strumbot/target/ ./target/
 COPY ./Cargo.lock ./Cargo.lock
 COPY ./Cargo.toml ./Cargo.toml
-COPY ./src ./src
+
+COPY ./commons ./commons
+COPY ./database-api ./database-api
+COPY ./discord-api ./discord-api
+COPY ./strumbot ./strumbot
+COPY ./twitch-api ./twitch-api
 
 RUN cargo build --release
 
