@@ -2,11 +2,10 @@ FROM rust:latest as deps
 
 WORKDIR /strumbot
 
-RUN USER=root cargo new --bin strumbot
 RUN USER=root cargo new --lib commons
 RUN USER=root cargo new --lib database-api
 RUN USER=root cargo new --lib discord-api
-RUN USER=root cargo new --lib strumbot
+RUN USER=root cargo new --bin strumbot
 RUN USER=root cargo new --lib twitch-api
 
 COPY ./Cargo.lock ./Cargo.lock
