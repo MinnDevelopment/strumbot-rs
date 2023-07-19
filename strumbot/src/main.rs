@@ -1,4 +1,3 @@
-use commons::errors::AsyncError;
 use config::Config;
 use database_api::{Database, DatabaseError, FileDatabase};
 use discord_api::{Gateway, WebhookClient};
@@ -21,11 +20,10 @@ mod config;
 mod errors;
 mod watcher;
 
-type Async = Result<(), AsyncError>;
 type Cache = FileDatabase;
 
 #[tokio::main]
-async fn main() -> Async {
+async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
     let config: String = match tokio::fs::read_to_string("config.json").await {
@@ -194,7 +192,7 @@ async fn load_cache(
     client: &Arc<TwitchClient>,
     webhook: &Arc<WebhookClient>,
     db: &Arc<Cache>,
-) -> Async {
+) -> anyhow::Result<()> {
     if let Ok(data) = fs::metadata(".config").await {
         if !data.is_dir() {
             log::error!("Cannot load cache: .config is not a directory");

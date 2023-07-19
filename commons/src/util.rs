@@ -5,8 +5,8 @@ use std::{num::NonZeroU64, ops::Add};
 macro_rules! resolve {
     ($x:expr) => {
         match $x.await {
-            Ok(response) => response.model().await.map_err(commons::errors::AsyncError::from),
-            Err(err) => Err(commons::errors::AsyncError::from(err)),
+            Ok(response) => response.model().await.map_err(anyhow::Error::from),
+            Err(err) => Err(anyhow::Error::from(err)),
         }
     };
 }
