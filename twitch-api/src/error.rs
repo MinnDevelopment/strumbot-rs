@@ -9,7 +9,7 @@ pub enum RequestError {
     Timeout,
     #[error("unexpected error: {0:?}")]
     Unexpected(#[from] anyhow::Error),
-    #[error("failed to deserialize")]
+    #[error("failed to deserialize {0:?}")]
     Deserialize(#[from] serde_json::Error),
     #[error("{0} not found for query {1}")]
     NotFound(&'static str, String),
