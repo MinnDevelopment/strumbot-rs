@@ -4,6 +4,7 @@ version = "1.2.5"
 edition.workspace = true
 
 [dependencies]
+anyhow = { workspace = true }
 twilight-http-ratelimiting = { workspace = true }
 twilight-model = { workspace = true }
 tracing = { workspace = true }

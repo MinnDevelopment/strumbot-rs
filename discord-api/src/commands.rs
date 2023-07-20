@@ -16,7 +16,6 @@ use twilight_model::{
     },
 };
 
-use commons::errors::AsyncError;
 use commons::resolve;
 
 use crate::config::{DiscordConfig, RoleNameConfig};
@@ -54,7 +53,7 @@ impl Gateway {
         }
     }
 
-    pub async fn run(mut self) -> Result<(), AsyncError> {
+    pub async fn run(mut self) -> anyhow::Result<()> {
         let mut shard = Shard::with_config(
             ShardId::ONE,
             ShardConfig::builder(self.http.token().unwrap().into(), Self::INTENTS)
@@ -82,7 +81,7 @@ impl Gateway {
                     }
                 }
                 _ => {}
-            }    
+            }
         }
 
         log::info!("Connection terminated");
@@ -94,7 +93,7 @@ impl Gateway {
         (name, name)
     }
 
-    async fn init_roles(&mut self, config: &RoleNameConfig, guild_id: &str) -> Result<bool, AsyncError> {
+    async fn init_roles(&mut self, config: &RoleNameConfig, guild_id: &str) -> anyhow::Result<bool> {
         let guild_id: Id<GuildMarker> = Id::from_str(guild_id)?;
         let role_names = config.values();
 

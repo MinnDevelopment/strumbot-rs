@@ -50,6 +50,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0942ffc6dcaadf03badf6e6a2d0228460359d5e34b57ccdc720b7382dfbd5ec5"
 
 [[package]]
+name = "anyhow"
+version = "1.0.72"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b13c32d80ecc7ab747b80c3784bce54ee8a7a0cc4fbda9bf4cda2cf6fe90854"
+
+[[package]]
 name = "async-compression"
 version = "0.3.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -238,6 +244,7 @@ dependencies = [
 name = "discord-api"
 version = "1.2.5"
 dependencies = [
+ "anyhow",
  "commons",
  "futures",
  "hashbrown 0.14.0",
@@ -1181,6 +1188,7 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 name = "strumbot"
 version = "1.2.6"
 dependencies = [
+ "anyhow",
  "commons",
  "database-api",
  "discord-api",
@@ -1188,6 +1196,7 @@ dependencies = [
  "futures",
  "serde",
  "serde_json",
+ "thiserror",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -1597,6 +1606,7 @@ dependencies = [
 name = "twitch-api"
 version = "1.2.5"
 dependencies = [
+ "anyhow",
  "bytes",
  "eos",
  "hashbrown 0.14.0",
@@ -1606,6 +1616,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "thiserror",
  "tokio",
  "tracing",
 ]

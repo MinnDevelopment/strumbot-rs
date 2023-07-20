@@ -91,7 +91,7 @@ impl OauthClient {
                     warn!("Request error: {}", err);
                 }
                 Err(err) => {
-                    error!("Request failed unexpectedly: {}", err);
+                    // error!("Request failed unexpectedly: {}", err);
                     return Err(RequestError::from(err));
                 }
             };

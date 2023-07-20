@@ -1,7 +1,8 @@
-use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 
-#[derive(Debug)]
+use thiserror::Error;
+
+#[derive(Error, Debug)]
 pub enum InitError {
     NoGuilds,
     TooManyGuilds,
@@ -15,5 +16,3 @@ impl Display for InitError {
         }
     }
 }
-
-impl Error for InitError {}

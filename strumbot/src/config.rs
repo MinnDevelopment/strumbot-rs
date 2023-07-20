@@ -8,7 +8,7 @@ use twilight_model::guild::{Guild, Permissions};
 use twilight_model::id::{marker::GuildMarker, Id};
 use twitch_api::config::TwitchConfig;
 
-use commons::{errors::AsyncError as Error, resolve};
+use commons::resolve;
 
 use crate::errors::InitError;
 
@@ -43,15 +43,15 @@ impl Config {
         self.role_map.get(event).cloned()
     }
 
-    pub async fn init_roles(&mut self, client: &Client) -> Result<(), Error> {
+    pub async fn init_roles(&mut self, client: &Client) -> anyhow::Result<()> {
         let guild = if let Some(ref id) = self.discord.guild_id {
             Self::get_guild(client, id.parse()?).await?
         } else {
             let guilds = client.current_user_guilds().limit(2)?.await?.models().await?;
             match guilds[..] {
                 [ref guild] => Self::get_guild(client, guild.id).await?,
-                [] => return Err(Box::new(InitError::NoGuilds)),
-                _ => return Err(Box::new(InitError::TooManyGuilds)),
+                [] => return Err(InitError::NoGuilds.into()),
+                _ => return Err(InitError::TooManyGuilds.into()),
             }
         };
 
@@ -59,10 +59,10 @@ impl Config {
         Ok(())
     }
 
-    async fn get_guild(client: &Client, id: Id<GuildMarker>) -> Result<Guild, Error> {
+    async fn get_guild(client: &Client, id: Id<GuildMarker>) -> anyhow::Result<Guild> {
         match client.guild(id).await {
             Ok(guild) => Ok(guild.model().await?),
-            Err(err) => Err(Box::new(err)),
+            Err(err) => Err(err.into()),
         }
     }
 

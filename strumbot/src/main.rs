@@ -1,4 +1,3 @@
-use commons::errors::AsyncError;
 use config::Config;
 use database_api::{Database, DatabaseError, FileDatabase};
 use discord_api::{Gateway, WebhookClient};
@@ -21,11 +20,10 @@ mod config;
 mod errors;
 mod watcher;
 
-type Async = Result<(), AsyncError>;
 type Cache = FileDatabase;
 
 #[tokio::main]
-async fn main() -> Async {
+async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
 
     let config: String = match tokio::fs::read_to_string("config.json").await {
@@ -152,17 +150,17 @@ fn start_watcher(
                     break;
                 }
                 Err(e) => {
-                    log::error!("[{}] Error when updating stream watcher: {}", key, e);
+                    log::error!("[{key}] Error when updating stream watcher: {e:?}");
                 }
                 Ok(WatcherState::Updated) => {
                     if cache_enabled {
                         // Save the current watcher state to cache file
                         match db.save(&key, &watcher).await {
                             Err(DatabaseError::Io(e)) => {
-                                log::error!("[{}] Failed to save cache: {}", key, e);
+                                log::error!("[{key}] Failed to save cache: {e:?}");
                             }
                             Err(DatabaseError::Serde(e)) => {
-                                log::error!("[{}] Could not serialize watcher: {}", key, e);
+                                log::error!("[{key}] Could not serialize watcher: {e:?}");
                             }
                             Ok(_) => {}
                         }
@@ -176,7 +174,7 @@ fn start_watcher(
         }
 
         if let Err(err) = db.delete(&key).await {
-            log::error!("{} Failed to delete database entry: {}", key, err);
+            log::error!("[{key}] Failed to delete database entry: {err:?}");
         }
         receive.close();
     });
@@ -194,7 +192,7 @@ async fn load_cache(
     client: &Arc<TwitchClient>,
     webhook: &Arc<WebhookClient>,
     db: &Arc<Cache>,
-) -> Async {
+) -> anyhow::Result<()> {
     if let Ok(data) = fs::metadata(".config").await {
         if !data.is_dir() {
             log::error!("Cannot load cache: .config is not a directory");

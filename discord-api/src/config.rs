@@ -71,7 +71,7 @@ mod tests {
             "enabled_events": ["live", "update", "vod"],
             "enable_command": true
         }"#;
-        
+
         let discord: DiscordConfig = serde_json::from_slice(file).unwrap();
 
         assert_eq!(discord.guild_id, Some("81384788765712384".into()));

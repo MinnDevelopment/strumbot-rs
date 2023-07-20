@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use commons::errors::AsyncError as Error;
 use commons::util::Timestamp;
 use discord_api::{config::EventName, WebhookClient};
 use eos::DateTime;
@@ -128,7 +127,7 @@ impl StreamWatcher {
         client: &TwitchClient,
         webhook: &WebhookClient,
         stream: StreamUpdate,
-    ) -> Result<WatcherState, Error> {
+    ) -> anyhow::Result<WatcherState> {
         match stream {
             StreamUpdate::Live(stream) if self.segments.is_empty() => {
                 self.on_go_live(client, webhook, *stream).await?;
@@ -157,7 +156,7 @@ impl StreamWatcher {
         client: &TwitchClient,
         webhook: &WebhookClient,
         stream: Stream,
-    ) -> Result<(), Error> {
+    ) -> anyhow::Result<()> {
         self.offline_timestamp = None;
         self.start_timestamp = stream.started_at;
         self.user_id = stream.user_id.clone();
@@ -196,7 +195,7 @@ impl StreamWatcher {
         client: &TwitchClient,
         webhook: &WebhookClient,
         stream: Stream,
-    ) -> Result<bool, Error> {
+    ) -> anyhow::Result<bool> {
         self.offline_timestamp = None;
         let old_game = match self.segments.last() {
             Some(seg) => seg.game.clone(), // have to clone so the borrow isn't an issue later
@@ -261,7 +260,7 @@ impl StreamWatcher {
         Ok(true)
     }
 
-    async fn on_offline(&mut self, client: &TwitchClient, webhook: &WebhookClient) -> Result<bool, Error> {
+    async fn on_offline(&mut self, client: &TwitchClient, webhook: &WebhookClient) -> anyhow::Result<bool> {
         // Check if the offline grace period is over (usually 2 minutes)
         match self.offline_timestamp {
             None => {
