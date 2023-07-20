@@ -150,17 +150,17 @@ fn start_watcher(
                     break;
                 }
                 Err(e) => {
-                    log::error!("[{}] Error when updating stream watcher: {}", key, e);
+                    log::error!("[{key}] Error when updating stream watcher: {e:?}");
                 }
                 Ok(WatcherState::Updated) => {
                     if cache_enabled {
                         // Save the current watcher state to cache file
                         match db.save(&key, &watcher).await {
                             Err(DatabaseError::Io(e)) => {
-                                log::error!("[{}] Failed to save cache: {}", key, e);
+                                log::error!("[{key}] Failed to save cache: {e:?}");
                             }
                             Err(DatabaseError::Serde(e)) => {
-                                log::error!("[{}] Could not serialize watcher: {}", key, e);
+                                log::error!("[{key}] Could not serialize watcher: {e:?}");
                             }
                             Ok(_) => {}
                         }
@@ -174,7 +174,7 @@ fn start_watcher(
         }
 
         if let Err(err) = db.delete(&key).await {
-            log::error!("{} Failed to delete database entry: {}", key, err);
+            log::error!("[{key}] Failed to delete database entry: {err:?}");
         }
         receive.close();
     });
