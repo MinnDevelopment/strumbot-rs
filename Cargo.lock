@@ -1606,6 +1606,7 @@ dependencies = [
 name = "twitch-api"
 version = "1.2.5"
 dependencies = [
+ "anyhow",
  "bytes",
  "eos",
  "hashbrown 0.14.0",
@@ -1615,6 +1616,7 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "thiserror",
  "tokio",
  "tracing",
 ]
