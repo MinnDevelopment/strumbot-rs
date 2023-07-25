@@ -40,7 +40,7 @@ impl Add<u64> for Timestamp {
 static ALT_TEXT_WHITELIST: Lazy<Regex> = Lazy::new(|| Regex::new(r"\s*(?:[_*`]+|~~+|\|\|+)\s*|(\s+|^)\w+://").unwrap());
 
 pub fn sanitize_markdown(text: &str) -> String {
-    ALT_TEXT_WHITELIST.replace_all(text, " ").trim().to_string()
+    ALT_TEXT_WHITELIST.replace_all(text, " ").trim().to_owned()
 }
 
 #[cfg(test)]
