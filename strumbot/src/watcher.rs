@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use commons::util::Timestamp;
+use commons::util::{sanitize_markdown, Timestamp};
 use discord_api::{config::EventName, WebhookClient};
 use eos::DateTime;
 use serde::{Deserialize, Serialize};
@@ -367,8 +367,9 @@ impl StreamWatcher {
                 .iter()
                 .enumerate()
                 .map(|(i, c)| {
+                    let sanitized_title = sanitize_markdown(&c.title);
                     let mut title = String::with_capacity(30);
-                    for (i, c) in c.title.chars().enumerate() {
+                    for (i, c) in sanitized_title.chars().enumerate() {
                         if i == 26 {
                             title.push_str("...");
                             break;
@@ -381,10 +382,11 @@ impl StreamWatcher {
                         });
                     }
                     format!(
-                        "`{}.` [**{} \u{1F855}**]({}) \u{2022} **{}**\u{00A0}views\n",
+                        "`{}.` [**{} \u{1F855}**]({} '{}') \u{2022} **{}**\u{00A0}views\n",
                         i + 1,
                         title,
                         c.url,
+                        sanitized_title,
                         c.view_count
                     )
                 })
