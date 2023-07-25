@@ -1,6 +1,6 @@
 [package]
 name = "commons"
-version = "1.2.5"
+version = "1.2.7"
 edition.workspace = true
 
 [dependencies.serde]
