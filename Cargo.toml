@@ -55,7 +55,7 @@ default-features = false
 features = ["rustls-webpki-roots", "zlib-stock"]
 
 [workspace.dependencies.serde]
-version = "1.0.156, < 1.0.172"
+version = "1.0"
 features = ["rc"]
 
 [workspace.dependencies.regex]
