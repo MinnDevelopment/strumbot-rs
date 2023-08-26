@@ -43,8 +43,6 @@ WORKDIR /app
 COPY --from=libs /lib/x86_64-linux-gnu/libz.so.1 /lib/x86_64-linux-gnu/libz.so.1
 COPY --from=build /strumbot/target/release/strumbot /usr/bin/strumbot
 
-RUN ldd /usr/bin/strumbot
-
 ENV RUST_LOG=info,twilight_gateway=error
 
 CMD ["/usr/bin/strumbot"]
