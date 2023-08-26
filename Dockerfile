@@ -1,4 +1,4 @@
-FROM rust:latest as deps
+FROM rust:bullseye as deps
 
 WORKDIR /strumbot
 
@@ -22,10 +22,10 @@ RUN find . -wholename "*/src/*.rs" | xargs rm -f
 RUN rm -f ./target/release/deps/{libcommons*,libdatabase_api*,libdiscord_api*,strumbot*,libtwitch_api*}
 
 
-FROM debian:buster as libs
+FROM debian:bullseye as libs
 
 
-FROM rust:latest as build
+FROM rust:bullseye as build
 
 WORKDIR /strumbot
 
@@ -36,13 +36,14 @@ COPY --from=deps /strumbot/target/ ./target/
 RUN cargo build --release
 
 
-FROM gcr.io/distroless/cc
+FROM gcr.io/distroless/cc-debian11
 
 WORKDIR /app
 
 COPY --from=libs /lib/x86_64-linux-gnu/libz.so.1 /lib/x86_64-linux-gnu/libz.so.1
-COPY --from=build /lib/x86_64-linux-gnu/libc.so.6 /lib/x86_64-linux-gnu/libc.so.6
 COPY --from=build /strumbot/target/release/strumbot /usr/bin/strumbot
+
+RUN ldd /usr/bin/strumbot
 
 ENV RUST_LOG=info,twilight_gateway=error
 
