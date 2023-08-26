@@ -192,7 +192,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "commons"
-version = "1.2.7"
+version = "1.2.10"
 dependencies = [
  "once_cell",
  "regex",
@@ -1305,7 +1305,7 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
 name = "strumbot"
-version = "1.2.9"
+version = "1.2.10"
 dependencies = [
  "anyhow",
  "commons",
