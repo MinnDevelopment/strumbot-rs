@@ -1305,7 +1305,7 @@ checksum = "6e63cff320ae2c57904679ba7cb63280a3dc4613885beafb148ee7bf9aa9042d"
 
 [[package]]
 name = "strumbot"
-version = "1.2.10"
+version = "1.2.11"
 dependencies = [
  "anyhow",
  "commons",

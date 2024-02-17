@@ -86,6 +86,8 @@ async fn main() -> anyhow::Result<()> {
 
     loop {
         log::debug!("Fetching streams {:?}", config.twitch.user_login);
+        watchers.retain(|_, watcher| !watcher.is_closed());
+
         // 1. Fetch streams in batch
         let streams = client.get_streams_by_login(&config.twitch.user_login).await?;
 
@@ -111,9 +113,7 @@ async fn main() -> anyhow::Result<()> {
         // 4. Send updates for all streams that are offline
         for name in offline {
             if let Some(send) = watchers.get_mut(&name) {
-                if push(send, StreamUpdate::Offline).await {
-                    watchers.remove(&name);
-                }
+                push(send, StreamUpdate::Offline).await;
             }
         }
 
@@ -182,8 +182,9 @@ fn start_watcher(
     send
 }
 
-async fn push(s: &mpsc::Sender<StreamUpdate>, event: StreamUpdate) -> bool {
-    s.send(event).await.is_err() // err indicates that the watcher is done
+#[inline]
+async fn push(s: &mpsc::Sender<StreamUpdate>, event: StreamUpdate) {
+    drop(s.send(event).await);
 }
 
 async fn load_cache(

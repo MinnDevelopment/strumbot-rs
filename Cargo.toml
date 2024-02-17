@@ -1,14 +1,8 @@
 [workspace]
-members = [
-    "commons",
-    "database-api",
-    "discord-api",
-    "strumbot",
-    "twitch-api",
-]
+members = ["commons", "database-api", "discord-api", "strumbot", "twitch-api"]
 
 [workspace.package]
-version = "1.2.10"
+version = "1.2.11"
 edition = "2021"
 
 [workspace.dependencies]
