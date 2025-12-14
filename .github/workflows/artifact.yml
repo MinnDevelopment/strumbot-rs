@@ -8,7 +8,7 @@ on:
 jobs:
   linux:
     name: Artifact Linux (x64)
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     container:
       image: ubuntu:16.04
     steps:
