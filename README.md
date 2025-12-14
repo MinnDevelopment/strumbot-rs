@@ -114,11 +114,9 @@ The config file should be populated as described above. The cache directory shou
 Your docker-compose.yml should then be configured this way:
 
 ```yml
-version: "2.2"
-
 services:
     strumbot:
-        image: minnced/strumbot-rs:1.2.11
+        image: minnced/strumbot-rs:1.2.12
         volumes:
             - ./cache:/app/.cache # The hosted cache directory as a local volume
             - ./config.json:/app/config.json # Your config file is also available inside the container as a volume

@@ -11,8 +11,8 @@ use tokio::{fs, sync::mpsc, time::sleep};
 use tracing as log;
 use twilight_http::Client;
 use twitch_api::{
-    oauth::{ClientParams, OauthClient},
     TwitchClient,
+    oauth::{ClientParams, OauthClient},
 };
 use watcher::{StreamUpdate, StreamWatcher, WatcherState};
 
@@ -76,10 +76,10 @@ async fn main() -> anyhow::Result<()> {
 
     let client = Arc::new(TwitchClient::new(oauth).await?);
 
-    if config.cache.enabled {
-        if let Err(err) = load_cache(&mut watchers, &config, &client, &webhook, &cache).await {
-            log::error!("Could not load cache: {}", err);
-        }
+    if config.cache.enabled
+        && let Err(err) = load_cache(&mut watchers, &config, &client, &webhook, &cache).await
+    {
+        log::error!("Could not load cache: {}", err);
     }
 
     log::info!("Listening for streams from {:?}", config.twitch.user_login);
@@ -194,11 +194,11 @@ async fn load_cache(
     webhook: &Arc<WebhookClient>,
     db: &Arc<Cache>,
 ) -> anyhow::Result<()> {
-    if let Ok(data) = fs::metadata(".config").await {
-        if !data.is_dir() {
-            log::error!("Cannot load cache: .config is not a directory");
-            return Ok(());
-        }
+    if let Ok(data) = fs::metadata(".config").await
+        && !data.is_dir()
+    {
+        log::error!("Cannot load cache: .config is not a directory");
+        return Ok(());
     }
 
     let mut count = 0;

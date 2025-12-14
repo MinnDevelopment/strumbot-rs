@@ -13,22 +13,20 @@ jobs:
       image: ubuntu:16.04
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
       - name: Install Essentials
         run: |
           apt-get update
           apt-get upgrade -y
           apt-get install -y curl gcc
       - name: Install Rust Toolchain
-        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af #@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
           toolchain: stable
-          override: true
       - name: Build Artifact
         run: cargo build -r
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         with:
           name: Linux x64
           path: target/release/strumbot
@@ -37,17 +35,15 @@ jobs:
     runs-on: windows-2019
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
       - name: Install Rust Toolchain
-        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af #@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
           toolchain: stable
-          override: true
       - name: Build Artifact
         run: cargo build -r
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         with:
           name: Windows x64
           path: target/release/strumbot.exe
@@ -56,13 +52,11 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
       - name: Install Rust Toolchain
-        uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af #@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
           toolchain: stable
-          override: true
           target: x86_64-apple-darwin
       - name: Build Artifact (x64)
         run: cargo build -r --target=x86_64-apple-darwin
@@ -74,7 +68,7 @@ jobs:
         run:
           lipo -create -output universal-strumbot target/**/release/strumbot
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v6
         with:
           name: macOS universal
           path: universal-strumbot

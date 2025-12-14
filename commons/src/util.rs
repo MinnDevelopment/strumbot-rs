@@ -38,7 +38,7 @@ impl Add<u64> for Timestamp {
 }
 
 // [0x1f600,0x1f603,0x1f604,...,0x1f1f3]
-const EMOJI_LIST: [u32; 9280] = include!("../../emojis.txt");
+static EMOJI_LIST: [u32; 9280] = include!("../../emojis.txt");
 
 static ALT_TEXT_WHITELIST: Lazy<Regex> = Lazy::new(|| Regex::new(r"\s*(?:[_*`]+|~~+|\|\|+)\s*|(\s+|^)\w+://").unwrap());
 

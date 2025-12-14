@@ -29,7 +29,7 @@ path = "../database-api"
 
 [dependencies.twilight-http]
 workspace = true
-features = ["decompression", "rustls-webpki-roots", "trust-dns"]
+features = ["decompression", "rustls-webpki-roots"]
 
 [dependencies.futures]
 workspace = true

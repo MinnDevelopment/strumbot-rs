@@ -1,4 +1,4 @@
-use eos::fmt::{format_spec, FormatSpec};
+use eos::fmt::{FormatSpec, format_spec};
 use lru::LruCache;
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -11,8 +11,8 @@ use std::{
 use tracing as log;
 
 use super::{
-    oauth::{Identity, OauthClient, QueryParams},
     Clip, Game, Stream, TwitchData, Video, VideoType,
+    oauth::{Identity, OauthClient, QueryParams},
 };
 use crate::error::RequestError;
 

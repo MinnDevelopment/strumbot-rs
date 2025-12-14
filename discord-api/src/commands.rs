@@ -3,16 +3,16 @@ use std::{str::FromStr, sync::Arc};
 use twilight_util::builder::command::StringBuilder;
 
 use tracing as log;
-use twilight_gateway::{Config as ShardConfig, Event, EventTypeFlags, Intents, Shard, ShardId};
+use twilight_gateway::{Config as ShardConfig, Event, EventTypeFlags, Intents, Shard, ShardId, StreamExt};
 use twilight_http::Client;
 use twilight_model::{
-    application::interaction::{application_command::CommandOptionValue, Interaction, InteractionData},
+    application::interaction::{Interaction, InteractionData, application_command::CommandOptionValue},
     channel::message::MessageFlags,
     gateway::payload::incoming::Ready,
     http::interaction::{InteractionResponse, InteractionResponseData, InteractionResponseType},
     id::{
-        marker::{GuildMarker, RoleMarker},
         Id,
+        marker::{GuildMarker, RoleMarker},
     },
 };
 
@@ -42,6 +42,7 @@ impl Gateway {
             custom_id: None,
             embeds: None,
             title: None,
+            poll: None,
         }),
     };
 
@@ -56,15 +57,16 @@ impl Gateway {
     pub async fn run(mut self) -> anyhow::Result<()> {
         let mut shard = Shard::with_config(
             ShardId::ONE,
-            ShardConfig::builder(self.http.token().unwrap().into(), Self::INTENTS)
-                .event_types(EventTypeFlags::INTERACTION_CREATE | EventTypeFlags::READY)
-                .build(),
+            ShardConfig::new(self.http.token().unwrap().into(), Self::INTENTS),
         );
 
         log::info!("Connection established");
 
-        loop {
-            match shard.next_event().await {
+        while let Some(event) = shard
+            .next_event(EventTypeFlags::INTERACTION_CREATE | EventTypeFlags::READY)
+            .await
+        {
+            match event {
                 Ok(Event::InteractionCreate(interaction)) => {
                     self.on_interaction(&interaction).await;
                 }
@@ -75,12 +77,10 @@ impl Gateway {
                 }
                 Err(e) => {
                     log::error!(?e, "error in gateway event stream");
-
-                    if e.is_fatal() {
-                        break;
-                    }
                 }
-                _ => {}
+                _ => {
+                    log::debug!("Received unknown event!");
+                }
             }
         }
 
@@ -166,10 +166,8 @@ impl Gateway {
             .interaction(event.application.id)
             .create_global_command()
             .chat_input("notify", "Subscribe or unsubscribe for notifications")
-            .unwrap()
             .dm_permission(false)
             .command_options(&[option])
-            .unwrap()
             .await;
 
         if let Err(ref e) = res {
@@ -199,16 +197,26 @@ impl Gateway {
         if let Err(e) = r {
             log::error!("Failed to respond to interaction: {}", e);
             return None;
+        } else {
+            log::debug!("Processing notify command");
         }
 
         let option = command.options.iter().find(|o| o.name == "role")?;
 
         let CommandOptionValue::String(ref role_name) = option.value else {
+            log::warn!("Unexpected value for 'role' option: {:?}", option.value);
             return None;
         };
 
-        let role = self.role_cache.get(role_name).copied()?;
-        let guild = interaction.guild_id?;
+        let Some(role) = self.role_cache.get(role_name).copied() else {
+            log::warn!("Failed to find role for name '{role_name}'");
+            return None;
+        };
+
+        let Some(guild) = interaction.guild_id else {
+            log::warn!("Missing guild_id on interaction! The commands cannot be used in direct messages.");
+            return None;
+        };
 
         let member = interaction.member.as_ref().expect("Command without member in a guild");
         let author = interaction.author().expect("Command without author");
@@ -234,7 +242,6 @@ impl Gateway {
         let res = client
             .create_followup(&interaction.token)
             .content("Your roles have been updated!")
-            .expect("Failed to create followup!")
             .await;
 
         if let Err(e) = res {

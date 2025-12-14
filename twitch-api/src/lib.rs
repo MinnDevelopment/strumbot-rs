@@ -10,7 +10,7 @@ pub mod error;
 
 // Serde deserialization into Instant
 pub(crate) mod expires_at {
-    use serde::{de::Visitor, Deserializer};
+    use serde::{Deserializer, de::Visitor};
     use std::time::{Duration, Instant};
 
     struct ExpiresAtVisitor;
