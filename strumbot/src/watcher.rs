@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use commons::util::{sanitize_link_title, Timestamp};
-use discord_api::{config::EventName, WebhookClient};
+use commons::util::{Timestamp, sanitize_link_title};
+use discord_api::{WebhookClient, config::EventName};
 use eos::DateTime;
 use serde::{Deserialize, Serialize};
 use tracing as log;
@@ -9,7 +9,7 @@ use twilight_http::request::channel::webhook::ExecuteWebhook;
 use twilight_model::{channel::message::embed::EmbedFooter, http::attachment::Attachment};
 use twilight_util::builder::embed::{EmbedAuthorBuilder, EmbedBuilder, EmbedFieldBuilder, ImageSource};
 use twitch_api::VideoDuration;
-use twitch_api::{error::RequestError, Game, Stream, TwitchClient};
+use twitch_api::{Game, Stream, TwitchClient, error::RequestError};
 
 use crate::config::Config;
 
@@ -183,7 +183,7 @@ impl StreamWatcher {
             format!("{} {} is live with **{}**!", mention, user_name, game.name)
         };
 
-        let request = webhook.send_message().content(&content)?;
+        let request = webhook.send_message().content(&content);
         let thumbnail = stream.get_thumbnail(client).await;
         self.send(request, embed, thumbnail, "live").await;
 
@@ -253,7 +253,7 @@ impl StreamWatcher {
         let mention = self.get_mention("update");
         let content = format!("{} {} switched game to **{}**!", mention, stream.user_name, game.name);
 
-        let request = webhook.send_message().content(&content)?;
+        let request = webhook.send_message().content(&content);
         let thumbnail = stream.get_thumbnail(client).await;
         self.send(request, embed, thumbnail, "update").await;
 
@@ -309,7 +309,7 @@ impl StreamWatcher {
         let duration: VideoDuration = vods.iter().map(|v| v.duration).sum();
 
         let content = format!("{} VOD from {} [{}]", mention, self.user_name, duration);
-        let request = webhook.send_message().content(&content)?;
+        let request = webhook.send_message().content(&content);
 
         let thumbnail = if let Some(video) = vod {
             embed = embed
@@ -414,7 +414,7 @@ impl StreamWatcher {
         if let Some(thumbnail) = thumbnail {
             embed = embed.image(ImageSource::attachment(FILENAME).expect(INVALID_NAME));
             files = [Attachment::from_bytes(FILENAME.to_owned(), thumbnail, 0)];
-            request = request.attachments(&files).expect(INVALID_NAME);
+            request = request.attachments(&files);
         }
 
         if let Some(url) = self.config.discord.avatar_url.as_deref() {
@@ -422,24 +422,13 @@ impl StreamWatcher {
         }
 
         let embeds = [embed.build()];
-        match request.embeds(&embeds) {
-            Ok(request) => {
-                if let Err(err) = request.await {
-                    log::error!(
-                        "[{}] Failed to send validated embed for {} event: {}",
-                        self.user_name,
-                        context,
-                        err
-                    );
-                }
-            }
-            Err(err) => log::error!(
-                "[{}] Tried to send invalid embed for {} event: {:?}\nEmbed: {:?}",
+        if let Err(err) = request.embeds(&embeds).await {
+            log::error!(
+                "[{}] Failed to send embed for {} event: {}",
                 self.user_name,
                 context,
-                err,
-                embeds[0]
-            ),
+                err
+            );
         }
     }
 
@@ -517,11 +506,13 @@ impl StreamWatcher {
         for segment in &mut self.segments {
             // We will not attempt to link a vod if its too old,
             // otherwise we end up with linearly increasing numbers of fetch requests to do.
-            if segment.video_id.is_empty() && segment.stream_id == stream.id && segment.position < 120 {
-                if let Ok(video) = client.get_video_by_stream(stream).await {
-                    segment.video_id = video.id;
-                    changed = true;
-                }
+            if segment.video_id.is_empty()
+                && segment.stream_id == stream.id
+                && segment.position < 120
+                && let Ok(video) = client.get_video_by_stream(stream).await
+            {
+                segment.video_id = video.id;
+                changed = true;
             }
         }
 

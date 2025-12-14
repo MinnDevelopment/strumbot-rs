@@ -1,6 +1,6 @@
 [package]
 name = "discord-api"
-version = "1.2.5"
+version.workspace = true
 edition.workspace = true
 
 [dependencies]
@@ -25,12 +25,12 @@ features = ["builder"]
 
 [dependencies.twilight-http]
 workspace = true
-features = ["decompression", "rustls-webpki-roots", "trust-dns"]
+features = ["decompression", "rustls-webpki-roots"]
 
 [dependencies.twilight-gateway]
 workspace = true
 default-features = false
-features = ["rustls-webpki-roots", "zlib-stock"]
+features = ["rustls-webpki-roots"]
 
 [dependencies.hashbrown]
 workspace = true

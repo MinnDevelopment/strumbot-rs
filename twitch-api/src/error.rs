@@ -1,4 +1,4 @@
-use reqwest::{header::ToStrError, StatusCode};
+use reqwest::{StatusCode, header::ToStrError};
 use thiserror::Error;
 
 #[derive(Error, Debug)]

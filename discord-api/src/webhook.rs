@@ -1,8 +1,8 @@
 use regex::Regex;
 use serde::Deserialize;
 use std::sync::Arc;
-use twilight_http::{request::channel::webhook::ExecuteWebhook, Client};
-use twilight_model::id::{marker::WebhookMarker, Id};
+use twilight_http::{Client, request::channel::webhook::ExecuteWebhook};
+use twilight_model::id::{Id, marker::WebhookMarker};
 
 pub struct WebhookClient {
     client: Arc<Client>,
@@ -14,7 +14,7 @@ impl WebhookClient {
         Self { client, params }
     }
 
-    pub fn send_message(&self) -> ExecuteWebhook {
+    pub fn send_message<'a>(&'a self) -> ExecuteWebhook<'a> {
         let params = &self.params;
         self.client.execute_webhook(params.id, &params.token)
     }
