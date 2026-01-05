@@ -57,7 +57,7 @@ features = ["rc"]
 version = "1.12"
 
 [workspace.dependencies.tokio]
-version = "1.48"
+version = "1.49"
 features = ["macros", "rt-multi-thread", "fs", "sync"]
 default-features = false
 
