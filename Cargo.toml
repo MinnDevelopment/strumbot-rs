@@ -13,7 +13,7 @@ twilight-http-ratelimiting = "0.17"
 twilight-model = "0.17"
 serde_json = "1.0"
 bytes = "1"
-lru = "0.16"
+lru = "0.18"
 tracing = "0.1"
 tracing-subscriber = "0.3"
 async-trait = "0.1"
@@ -23,7 +23,7 @@ version = "1"
 default-features = false
 
 [workspace.dependencies.hashbrown]
-version = "0.16"
+version = "0.17"
 features = ["serde"]
 
 [workspace.dependencies.futures]
@@ -57,7 +57,7 @@ features = ["rc"]
 version = "1.12"
 
 [workspace.dependencies.tokio]
-version = "1.50"
+version = "1.52"
 features = ["macros", "rt-multi-thread", "fs", "sync"]
 default-features = false
 
