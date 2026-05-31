@@ -230,7 +230,7 @@ dependencies = [
  "anyhow",
  "commons",
  "futures",
- "hashbrown",
+ "hashbrown 0.17.1",
  "regex",
  "serde",
  "serde_json",
@@ -269,7 +269,7 @@ dependencies = [
 [[package]]
 name = "eos"
 version = "0.1.0"
-source = "git+https://github.com/Rapptz/eos#c0b7cca9a1b9167dacf1d55f7d47bd2659761589"
+source = "git+https://github.com/Rapptz/eos#6e62bfcccb008c300936ed70aa8c36f39fd239ce"
 dependencies = [
  "eos-format-spec-macro",
  "serde",
@@ -278,7 +278,7 @@ dependencies = [
 [[package]]
 name = "eos-format-spec-macro"
 version = "0.1.0"
-source = "git+https://github.com/Rapptz/eos#c0b7cca9a1b9167dacf1d55f7d47bd2659761589"
+source = "git+https://github.com/Rapptz/eos#6e62bfcccb008c300936ed70aa8c36f39fd239ce"
 
 [[package]]
 name = "equivalent"
@@ -432,6 +432,12 @@ name = "hashbrown"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
+
+[[package]]
+name = "hashbrown"
+version = "0.17.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
 dependencies = [
  "allocator-api2",
  "equivalent",
@@ -668,7 +674,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ad4bb2b565bca0645f4d68c5c9af97fba094e9791da685bf83cb5f3ce74acf2"
 dependencies = [
  "equivalent",
- "hashbrown",
+ "hashbrown 0.16.1",
 ]
 
 [[package]]
@@ -766,11 +772,11 @@ checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
 
 [[package]]
 name = "lru"
-version = "0.16.3"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1dc47f592c06f33f8e3aea9591776ec7c9f9e4124778ff8a3c3b87159f7e593"
+checksum = "8a860605968fce16869fd239cf4237a82f3ac470723415db603b0e8b6c8d4fb9"
 dependencies = [
- "hashbrown",
+ "hashbrown 0.17.1",
 ]
 
 [[package]]
@@ -811,7 +817,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1203,7 +1209,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1324,9 +1330,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.149"
+version = "1.0.150"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83fc039473c5595ace860d8c4fafa220ff474b3fc6bfdb4293327f1a37e94d86"
+checksum = "e8014e44b4736ed0538adeecded0fce2a272f22dc9578a7eb6b2d9993c74cfb9"
 dependencies = [
  "itoa",
  "memchr",
@@ -1864,7 +1870,7 @@ version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0515b0c30814068a7540fcb5f58b634259ca453fa335d42c3b2c8f2b06ac6a59"
 dependencies = [
- "hashbrown",
+ "hashbrown 0.16.1",
  "tokio",
  "tokio-util",
  "tracing",
@@ -1909,7 +1915,7 @@ dependencies = [
  "anyhow",
  "bytes",
  "eos",
- "hashbrown",
+ "hashbrown 0.17.1",
  "lru",
  "once_cell",
  "regex",
@@ -2108,7 +2114,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.60.2",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
